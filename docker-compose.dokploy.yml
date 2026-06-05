@@ -1,0 +1,53 @@
+services:
+  issuedesk:
+    image: tofilagman/issuedesk:latest
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_SERVER=postgres
+      - APP_PORT=5432
+      - APP_DATABASE=issuedeskdevl
+      - APP_USER=postgres
+      - APP_PASSWORD=postgres
+      - PORT=8080
+      # CHANGE THIS to a long random string in Dokploy's env settings.
+      - JWT_SECRET=change-me-to-a-long-random-string
+      - UPLOAD_DIR=/app/data/uploads
+      - MAX_UPLOAD_BYTES=26214400
+      # Seeds an admin only on first boot (while the users table is empty).
+      - SEED_ADMIN=true
+      - SEED_ADMIN_USERNAME=admin
+      - SEED_ADMIN_EMAIL=admin@issuedesk.local
+      - SEED_ADMIN_PASSWORD=admin123
+      - RUST_LOG=info
+    volumes:
+      - issuedesk-uploads:/app/data/uploads
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    configs:
+      - source: init-db
+        target: /docker-entrypoint-initdb.d/init-db.sql
+        mode: 0444
+    command: postgres -c 'max_connections=1000'
+
+volumes:
+  postgres-data:
+  issuedesk-uploads:
+
+configs:
+  init-db:
+    content: |
+      CREATE DATABASE issuedeskdevl;

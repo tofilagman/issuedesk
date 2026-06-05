@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT al.id, al.issue_id, al.actor_id, u.display_name as actor_name,\n                  al.action, al.field, al.old_value, al.new_value, al.created_at\n           FROM activity_log al\n           JOIN users u ON u.id = al.actor_id\n           WHERE al.issue_id = $1\n           ORDER BY al.created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "issue_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "actor_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "actor_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "action",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "field",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "old_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "new_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "afa9584b35d8ba688373882cf0c9daa6bf2fd11794f8046a454cc45697076950"
+}

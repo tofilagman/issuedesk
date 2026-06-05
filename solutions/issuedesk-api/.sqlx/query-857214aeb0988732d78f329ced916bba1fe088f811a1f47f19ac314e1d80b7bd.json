@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.project_id, p.key as project_key, i.number, i.title, i.description,\n                  i.type, i.status, i.priority,\n                  i.assignee_id, a.display_name as \"assignee_name?\",\n                  i.reporter_id, r.display_name as reporter_name,\n                  i.created_at, i.updated_at\n           FROM issues i\n           JOIN projects p ON p.id = i.project_id\n           JOIN users r ON r.id = i.reporter_id\n           LEFT JOIN users a ON a.id = i.assignee_id\n           WHERE i.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "project_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "number",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "type",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "status",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "priority",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 9,
+        "name": "assignee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "assignee_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "reporter_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "reporter_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "857214aeb0988732d78f329ced916bba1fe088f811a1f47f19ac314e1d80b7bd"
+}

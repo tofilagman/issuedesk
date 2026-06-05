@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) as \"count!\"\n           FROM issues i\n           WHERE i.project_id = $1\n             AND ($2::smallint IS NULL OR i.status = $2)\n             AND ($3::uuid     IS NULL OR i.assignee_id = $3)\n             AND ($4::smallint IS NULL OR i.type = $4)\n             AND ($5::smallint IS NULL OR i.priority = $5)\n             AND ($6::text     IS NULL OR i.title ILIKE $6)\n             AND ($7::uuid     IS NULL OR EXISTS(\n                    SELECT 1 FROM issue_labels il\n                    WHERE il.issue_id = i.id AND il.label_id = $7))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2",
+        "Uuid",
+        "Int2",
+        "Int2",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6678c4e5715fff78d6d01bfd97c40df7ec64689db45fe2fe2c251f57842b04a5"
+}

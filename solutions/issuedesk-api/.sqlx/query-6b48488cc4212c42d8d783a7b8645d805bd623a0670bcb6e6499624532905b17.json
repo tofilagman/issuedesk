@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.number, i.title, i.type, i.status, i.priority,\n                  i.assignee_id, a.display_name as \"assignee_name?\",\n                  i.created_at, i.updated_at\n           FROM issues i\n           LEFT JOIN users a ON a.id = i.assignee_id\n           WHERE i.project_id = $1\n             AND ($2::smallint IS NULL OR i.status = $2)\n             AND ($3::uuid     IS NULL OR i.assignee_id = $3)\n             AND ($4::smallint IS NULL OR i.type = $4)\n             AND ($5::smallint IS NULL OR i.priority = $5)\n             AND ($6::text     IS NULL OR i.title ILIKE $6)\n             AND ($7::uuid     IS NULL OR EXISTS(\n                    SELECT 1 FROM issue_labels il\n                    WHERE il.issue_id = i.id AND il.label_id = $7))\n           ORDER BY i.number DESC\n           LIMIT $8 OFFSET $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "type",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "priority",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "assignee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "assignee_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2",
+        "Uuid",
+        "Int2",
+        "Int2",
+        "Text",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6b48488cc4212c42d8d783a7b8645d805bd623a0670bcb6e6499624532905b17"
+}

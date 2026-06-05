@@ -1,0 +1,10 @@
+# Rust
+solutions/issuedesk-api/target/
+# Node / SvelteKit
+solutions/issuedesk-web/node_modules/
+solutions/issuedesk-web/.svelte-kit/
+solutions/issuedesk-web/build/
+# env + runtime data
+.env
+data/
+*.log

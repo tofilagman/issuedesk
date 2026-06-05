@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${APP_DATABASE:-issuedeskdevl}
+      POSTGRES_USER: ${APP_USER:-postgres}
+      POSTGRES_PASSWORD: ${APP_PASSWORD:-postgres}
+    volumes:
+      - issuedesk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_USER:-postgres} -d ${APP_DATABASE:-issuedeskdevl}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  issuedesk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_SERVER: postgres
+      APP_PORT: 5432
+      APP_DATABASE: ${APP_DATABASE:-issuedeskdevl}
+      APP_USER: ${APP_USER:-postgres}
+      APP_PASSWORD: ${APP_PASSWORD:-postgres}
+      PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      UPLOAD_DIR: /app/data/uploads
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-26214400}
+      SEED_ADMIN: ${SEED_ADMIN:-true}
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@issuedesk.local}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-admin123}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - issuedesk_uploads:/app/data/uploads
+    ports:
+      - "8080:8080"
+
+volumes:
+  issuedesk_pgdata:
+  issuedesk_uploads:
