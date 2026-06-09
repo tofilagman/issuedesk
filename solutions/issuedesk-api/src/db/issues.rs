@@ -165,7 +165,8 @@ pub async fn list(
              AND ($3::uuid     IS NULL OR i.assignee_id = $3)
              AND ($4::smallint IS NULL OR i.type = $4)
              AND ($5::smallint IS NULL OR i.priority = $5)
-             AND ($6::text     IS NULL OR i.title ILIKE $6)
+             AND ($6::text     IS NULL OR i.title ILIKE $6
+                    OR ($10 || '-' || i.number::text) ILIKE $6)
              AND ($7::uuid     IS NULL OR EXISTS(
                     SELECT 1 FROM issue_labels il
                     WHERE il.issue_id = i.id AND il.label_id = $7))
@@ -179,7 +180,8 @@ pub async fn list(
         q_like,
         f.label_id,
         page_size,
-        offset
+        offset,
+        project_key
     )
     .fetch_all(pool)
     .await?;
@@ -192,7 +194,8 @@ pub async fn list(
              AND ($3::uuid     IS NULL OR i.assignee_id = $3)
              AND ($4::smallint IS NULL OR i.type = $4)
              AND ($5::smallint IS NULL OR i.priority = $5)
-             AND ($6::text     IS NULL OR i.title ILIKE $6)
+             AND ($6::text     IS NULL OR i.title ILIKE $6
+                    OR ($8 || '-' || i.number::text) ILIKE $6)
              AND ($7::uuid     IS NULL OR EXISTS(
                     SELECT 1 FROM issue_labels il
                     WHERE il.issue_id = i.id AND il.label_id = $7))"#,
@@ -202,7 +205,8 @@ pub async fn list(
         f.r#type,
         f.priority,
         q_like,
-        f.label_id
+        f.label_id,
+        project_key
     )
     .fetch_one(pool)
     .await?

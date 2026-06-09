@@ -191,6 +191,86 @@ pub struct IssueDetail {
     pub labels: Vec<crate::models::LabelRow>,
 }
 
+// ----------------------------- issue links -----------------------------
+
+/// Create a link from the current issue to `target_issue_id`. `link_type` is
+/// expressed from the current issue's perspective:
+///   0 relates to, 1 blocks, 2 is blocked by, 3 duplicates, 4 is duplicated by.
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateLinkRequest {
+    pub target_issue_id: Uuid,
+    #[validate(range(min = 0, max = 4, message = "0-4"))]
+    pub link_type: i16,
+}
+
+/// A link as seen from a given issue: `link_type` (0-4) is the relationship to
+/// the *other* issue, whose summary fields are inlined.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IssueLink {
+    pub id: Uuid, // the link's id (used to delete)
+    pub link_type: i16,
+    pub issue_id: Uuid, // the other issue
+    pub key: String,    // e.g. "WAT-3"
+    pub number: i64,
+    pub title: String,
+    pub status: i16,
+    pub project_key: String,
+}
+
+// ----------------------------- dashboards / stats -----------------------------
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssigneeStat {
+    pub user_id: Uuid,
+    pub display_name: String,
+    pub count: i64,
+}
+
+/// Per-project dashboard figures. Count arrays are indexed by enum value
+/// (status 0-3, type 0-3, priority 0-3).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectStats {
+    pub total: i64,
+    pub open: i64,
+    pub done: i64,
+    pub unassigned: i64,
+    pub created_last7: i64,
+    pub resolved_last7: i64,
+    pub by_status: Vec<i64>,
+    pub by_type: Vec<i64>,
+    pub by_priority: Vec<i64>,
+    pub by_assignee: Vec<AssigneeStat>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectSummary {
+    pub key: String,
+    pub name: String,
+    pub total: i64,
+    pub done: i64,
+}
+
+/// System-wide dashboard, scoped to the projects the caller can see.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemStats {
+    pub projects: i64,
+    pub issues: i64,
+    pub users: i64,
+    pub open: i64,
+    pub done: i64,
+    pub created_last7: i64,
+    pub by_status: Vec<i64>,
+    pub by_type: Vec<i64>,
+    pub by_priority: Vec<i64>,
+    pub top_projects: Vec<ProjectSummary>,
+}
+
 // ----------------------------- comments -----------------------------
 
 #[derive(Debug, Deserialize, Validate)]

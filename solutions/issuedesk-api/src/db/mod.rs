@@ -3,7 +3,9 @@ pub mod attachments;
 pub mod comments;
 pub mod issues;
 pub mod labels;
+pub mod links;
 pub mod projects;
+pub mod stats;
 pub mod users;
 
 use sqlx::PgPool;

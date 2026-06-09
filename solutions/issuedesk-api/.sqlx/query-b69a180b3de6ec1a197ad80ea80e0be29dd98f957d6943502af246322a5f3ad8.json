@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM issue_links WHERE id = $1 RETURNING source_issue_id, target_issue_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_issue_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "target_issue_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "b69a180b3de6ec1a197ad80ea80e0be29dd98f957d6943502af246322a5f3ad8"
+}

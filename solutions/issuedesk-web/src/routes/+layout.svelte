@@ -6,6 +6,9 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
   import { api, loadToken, clearToken } from '$lib/api';
+  import MediaViewer from '$lib/components/MediaViewer.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
   import type { User } from '$lib/types';
 
   let { children } = $props();
@@ -46,12 +49,16 @@
         </a>
         <nav class="flex items-center gap-1 text-sm">
           <a class="btn-ghost" href="/">Projects</a>
+          <a class="btn-ghost" href="/dashboard">Dashboard</a>
           {#if auth.isAdmin}
             <a class="btn-ghost" href="/admin/users">Users</a>
           {/if}
         </nav>
         <div class="ml-auto flex items-center gap-3 text-sm">
-          <span class="text-slate-500">{auth.user.displayName}</span>
+          <span class="flex items-center gap-2 text-slate-600">
+            <Avatar seed={auth.user.id} name={auth.user.displayName} size={26} />
+            {auth.user.displayName}
+          </span>
           <button class="btn-ghost" onclick={logout}>Sign out</button>
         </div>
       </div>
@@ -66,6 +73,12 @@
     {/if}
   </main>
 </div>
+
+<!-- Fullscreen image lightbox / video popup -->
+<MediaViewer />
+
+<!-- Confirmation dialog -->
+<ConfirmDialog />
 
 <!-- Toasts -->
 <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">

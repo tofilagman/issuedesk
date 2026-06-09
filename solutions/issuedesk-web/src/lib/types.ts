@@ -98,6 +98,17 @@ export interface Attachment {
   createdAt: string;
 }
 
+export interface IssueLink {
+  id: string; // link id
+  linkType: number; // 0-4, relationship to the other issue (see LINK_TYPE_LABELS)
+  issueId: string; // the other issue
+  key: string; // e.g. "WAT-3"
+  number: number;
+  title: string;
+  status: number;
+  projectKey: string;
+}
+
 export interface Activity {
   id: string;
   issueId: string;
@@ -114,6 +125,61 @@ export interface Activity {
 export const TYPE_LABELS = ['Bug', 'Task', 'Story', 'Epic'];
 export const STATUS_LABELS = ['To Do', 'In Progress', 'In Review', 'Done'];
 export const PRIORITY_LABELS = ['Low', 'Medium', 'High', 'Urgent'];
+
+// Chart colors, indexed to match the *_LABELS arrays above.
+export const STATUS_COLORS = ['#94a3b8', '#0ea5e9', '#f59e0b', '#10b981']; // todo, in-prog, review, done
+export const PRIORITY_COLORS = ['#94a3b8', '#0ea5e9', '#f59e0b', '#f43f5e']; // low, med, high, urgent
+export const TYPE_COLORS = ['#f43f5e', '#0ea5e9', '#10b981', '#8b5cf6']; // bug, task, story, epic
+
+export interface AssigneeStat {
+  userId: string;
+  displayName: string;
+  count: number;
+}
+
+export interface ProjectStats {
+  total: number;
+  open: number;
+  done: number;
+  unassigned: number;
+  createdLast7: number;
+  resolvedLast7: number;
+  byStatus: number[];
+  byType: number[];
+  byPriority: number[];
+  byAssignee: AssigneeStat[];
+}
+
+export interface ProjectSummary {
+  key: string;
+  name: string;
+  total: number;
+  done: number;
+}
+
+export interface SystemStats {
+  projects: number;
+  issues: number;
+  users: number;
+  open: number;
+  done: number;
+  createdLast7: number;
+  byStatus: number[];
+  byType: number[];
+  byPriority: number[];
+  topProjects: ProjectSummary[];
+}
+
+// Link relationship as seen from the current issue (matches backend facing type).
+export const LINK_TYPE_LABELS = [
+  'Relates to',
+  'Blocks',
+  'Is blocked by',
+  'Duplicates',
+  'Is duplicated by'
+];
+// Display order for grouping linked issues.
+export const LINK_TYPE_ORDER = [1, 2, 0, 3, 4];
 
 export const STATUS_COLUMNS = [
   { value: 0, label: 'To Do' },

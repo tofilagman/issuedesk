@@ -10,6 +10,9 @@ use crate::{auth::middleware::require_auth, handlers, state::AppState};
 
 pub fn build(state: AppState) -> Router {
     let api = Router::new()
+        // dashboards
+        .route("/stats", get(handlers::stats::system))
+        .route("/projects/{id}/stats", get(handlers::stats::project))
         // users
         .route("/users/me", get(handlers::users::me))
         .route("/users", get(handlers::users::list).post(handlers::users::create))
@@ -58,6 +61,11 @@ pub fn build(state: AppState) -> Router {
             get(handlers::attachments::list).post(handlers::attachments::upload),
         )
         .route("/issues/{id}/activity", get(handlers::activity::list))
+        .route(
+            "/issues/{id}/links",
+            get(handlers::links::list).post(handlers::links::create),
+        )
+        .route("/issue-links/{id}", delete(handlers::links::delete))
         // comments / labels / attachments (by id)
         .route(
             "/comments/{id}",

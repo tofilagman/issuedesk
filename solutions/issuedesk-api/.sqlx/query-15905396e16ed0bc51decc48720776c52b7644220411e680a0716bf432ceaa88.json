@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.assignee_id as \"user_id!\", u.display_name, COUNT(*) as \"c!\"\n           FROM issues i JOIN users u ON u.id = i.assignee_id\n           WHERE i.project_id = $1\n           GROUP BY i.assignee_id, u.display_name\n           ORDER BY COUNT(*) DESC, u.display_name\n           LIMIT 8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "c!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "15905396e16ed0bc51decc48720776c52b7644220411e680a0716bf432ceaa88"
+}

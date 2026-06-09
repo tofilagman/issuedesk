@@ -3,6 +3,7 @@
   import { api } from '$lib/api';
   import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
   import type { User } from '$lib/types';
 
   let users = $state<User[]>([]);
@@ -86,7 +87,13 @@
     <tbody>
       {#each users as u (u.id)}
         <tr class="border-b border-slate-100">
-          <td class="px-3 py-2"><span class="font-medium">{u.displayName}</span> <span class="text-slate-400">@{u.userName}</span></td>
+          <td class="px-3 py-2">
+            <div class="flex items-center gap-2">
+              <Avatar seed={u.id} name={u.displayName} size={26} />
+              <span class="font-medium">{u.displayName}</span>
+              <span class="text-slate-400">@{u.userName}</span>
+            </div>
+          </td>
           <td class="px-3 py-2 text-slate-600">{u.email}</td>
           <td class="px-3 py-2">
             <select class="input max-w-[8rem]" value={u.role} onchange={(e) => update(u, { role: Number((e.target as HTMLSelectElement).value) })}>

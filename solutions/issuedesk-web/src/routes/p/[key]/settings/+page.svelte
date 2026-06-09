@@ -3,6 +3,8 @@
   import { api } from '$lib/api';
   import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
+  import { confirmDialog } from '$lib/stores/confirm.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
   import type { Label, Member, Project, User } from '$lib/types';
 
   const ctx = getContext<{ project: Project | null }>('project');
@@ -48,6 +50,7 @@
   }
 
   async function removeMember(m: Member) {
+    if (!(await confirmDialog.ask({ title: 'Remove member', message: `Remove ${m.displayName} from this project?`, confirmText: 'Remove', danger: true }))) return;
     try {
       await api.del(`/api/projects/${projectId}/members/${m.userId}`);
       members = members.filter((x) => x.userId !== m.userId);
@@ -68,6 +71,7 @@
   }
 
   async function deleteLabel(l: Label) {
+    if (!(await confirmDialog.ask({ title: 'Delete label', message: `Delete the “${l.name}” label? It will be removed from all issues.`, confirmText: 'Delete', danger: true }))) return;
     try {
       await api.del(`/api/labels/${l.id}`);
       labels = labels.filter((x) => x.id !== l.id);
@@ -87,6 +91,7 @@
     <ul class="divide-y divide-slate-100 text-sm">
       {#each members as m (m.userId)}
         <li class="flex items-center gap-2 py-2">
+          <Avatar seed={m.userId} name={m.displayName} size={26} />
           <span class="font-medium">{m.displayName}</span>
           <span class="text-slate-400">@{m.userName}</span>
           {#if m.role === 1}<span class="rounded bg-amber-100 px-1.5 text-xs text-amber-700">lead</span>{/if}

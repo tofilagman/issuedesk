@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT il.id, il.source_issue_id, il.target_issue_id, il.link_type,\n                  s.number AS s_number, s.title AS s_title, s.status AS s_status, sp.key AS s_pkey,\n                  t.number AS t_number, t.title AS t_title, t.status AS t_status, tp.key AS t_pkey\n           FROM issue_links il\n           JOIN issues   s  ON s.id  = il.source_issue_id\n           JOIN projects sp ON sp.id = s.project_id\n           JOIN issues   t  ON t.id  = il.target_issue_id\n           JOIN projects tp ON tp.id = t.project_id\n           WHERE il.source_issue_id = $1 OR il.target_issue_id = $1\n           ORDER BY il.link_type, il.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "source_issue_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "target_issue_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "link_type",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "s_number",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "s_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "s_status",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "s_pkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "t_number",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "t_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "t_status",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 11,
+        "name": "t_pkey",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "65da05394be1cb1bfc5d55d9ca8b0e9f07d7af9b90c15444acbcdc214b50e67b"
+}
