@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.key, p.name,\n                  COUNT(i.id) as \"total!\",\n                  COUNT(i.id) FILTER (WHERE i.status = 3) as \"done!\"\n           FROM projects p\n           LEFT JOIN issues i ON i.project_id = p.id\n           WHERE p.id = ANY($1)\n           GROUP BY p.id, p.key, p.name\n           ORDER BY COUNT(i.id) DESC, p.key\n           LIMIT 8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "done!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "f07f322999b66267f9036405c68388d7a448c4fed8747a7a30283711000acf01"
+}

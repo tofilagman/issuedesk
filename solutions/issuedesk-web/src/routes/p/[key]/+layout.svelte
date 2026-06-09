@@ -24,13 +24,15 @@
   });
 
   const tab = $derived(
-    page.route.id?.includes('/list')
-      ? 'list'
-      : page.route.id?.includes('/settings')
-        ? 'settings'
-        : page.route.id?.includes('/issue/')
-          ? ''
-          : 'board'
+    page.route.id?.includes('/dashboard')
+      ? 'dashboard'
+      : page.route.id?.includes('/list')
+        ? 'list'
+        : page.route.id?.includes('/settings')
+          ? 'settings'
+          : page.route.id?.includes('/issue/')
+            ? ''
+            : 'board'
   );
 </script>
 
@@ -54,6 +56,12 @@
         class="border-b-2 px-3 py-2 {tab === 'list'
           ? 'border-indigo-600 font-medium text-indigo-700'
           : 'border-transparent text-slate-500'}">List</a
+      >
+      <a
+        href={`/p/${ctx.project.key}/dashboard`}
+        class="border-b-2 px-3 py-2 {tab === 'dashboard'
+          ? 'border-indigo-600 font-medium text-indigo-700'
+          : 'border-transparent text-slate-500'}">Dashboard</a
       >
       <a
         href={`/p/${ctx.project.key}/settings`}

@@ -28,8 +28,15 @@
   }
 </script>
 
-<div class="grid min-h-[70vh] place-items-center">
-  <form onsubmit={submit} class="card w-full max-w-sm space-y-4 p-6">
+<!-- Full-bleed animated gradient backdrop (sits behind the layout's centered card) -->
+<div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-600 to-sky-500">
+  <div class="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-sky-300/30 blur-3xl"></div>
+  <div class="absolute -bottom-32 -right-16 h-[28rem] w-[28rem] rounded-full bg-fuchsia-400/30 blur-3xl"></div>
+  <div class="absolute left-1/3 top-1/2 h-72 w-72 rounded-full bg-indigo-300/20 blur-3xl"></div>
+</div>
+
+<div class="grid min-h-[80vh] place-items-center">
+  <form onsubmit={submit} class="w-full max-w-sm space-y-4 rounded-xl border border-white/40 bg-white/95 p-6 shadow-2xl backdrop-blur">
     <div class="flex items-center gap-2 text-lg font-semibold text-indigo-700">
       <span class="grid h-8 w-8 place-items-center rounded bg-indigo-600 text-white">id</span>
       issuedesk

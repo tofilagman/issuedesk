@@ -49,4 +49,6 @@ int_enum!(ActivityAction {
     PriorityChanged = 8,
     TypeChanged = 9,
     TitleChanged = 10,
+    LinkAdded = 11,
+    LinkRemoved = 12,
 });

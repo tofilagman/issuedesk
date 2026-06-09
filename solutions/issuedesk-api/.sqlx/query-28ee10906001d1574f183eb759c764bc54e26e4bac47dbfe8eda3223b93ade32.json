@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT type as \"k!\", COUNT(*) as \"c!\" FROM issues WHERE project_id = $1 GROUP BY type",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "k!",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 1,
+        "name": "c!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "28ee10906001d1574f183eb759c764bc54e26e4bac47dbfe8eda3223b93ade32"
+}

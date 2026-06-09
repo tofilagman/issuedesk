@@ -82,3 +82,18 @@ export const api = {
   /** URL for a download link (token can't ride in a plain <a>, so callers fetch). */
   downloadUrl: (id: string) => `/api/attachments/${id}`
 };
+
+/**
+ * Fetch an attachment's bytes with the auth header and return an object URL.
+ * Used for inline media (img/video) and the lightbox — a bare <img src> can't
+ * carry the Bearer token, and we must never persist the token into stored
+ * markdown. Callers own the returned URL and must `URL.revokeObjectURL` it.
+ */
+export async function fetchAttachmentObjectUrl(id: string): Promise<string> {
+  const res = await fetch(api.downloadUrl(id), {
+    headers: { Authorization: `Bearer ${loadToken()}`, 'Sec-Fetch-Site': 'same-origin' }
+  });
+  if (!res.ok) throw new ApiError(res.status, 'failed to load attachment');
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}

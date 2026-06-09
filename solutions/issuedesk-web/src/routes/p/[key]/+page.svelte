@@ -2,6 +2,8 @@
   import { getContext } from 'svelte';
   import { api } from '$lib/api';
   import { toasts } from '$lib/stores/toast.svelte';
+  import RichEditor from '$lib/editor/RichEditor.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
   import {
     STATUS_COLUMNS,
     TYPE_META,
@@ -187,7 +189,10 @@
               </div>
             {/if}
             {#if issue.assigneeName}
-              <p class="mt-2 text-xs text-slate-500">👤 {issue.assigneeName}</p>
+              <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                <Avatar seed={issue.assigneeId ?? issue.assigneeName} name={issue.assigneeName} size={18} />
+                {issue.assigneeName}
+              </div>
             {/if}
           </a>
         {/each}
@@ -232,8 +237,12 @@
         </select>
       </div>
       <div>
-        <label class="mb-1 block text-sm font-medium" for="de">Description</label>
-        <textarea id="de" class="input min-h-28" bind:value={nf.description}></textarea>
+        <span class="mb-1 block text-sm font-medium">Description</span>
+        <RichEditor
+          editable
+          placeholder="Describe the issue… (add images/videos after creating)"
+          onChange={(md) => (nf.description = md)}
+        />
       </div>
       <div class="flex gap-2 pt-2">
         <button class="btn-primary" disabled={creating}>Create</button>

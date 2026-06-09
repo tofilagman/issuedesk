@@ -5,15 +5,26 @@
   import { api, loadToken } from '$lib/api';
   import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
+  import { confirmDialog } from '$lib/stores/confirm.svelte';
+  import RichEditor from '$lib/editor/RichEditor.svelte';
+  import AttachmentThumb from '$lib/components/AttachmentThumb.svelte';
+  import CollapsibleCard from '$lib/components/CollapsibleCard.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
+  import { loadCollapse, saveCollapse } from '$lib/collapse';
   import {
     STATUS_LABELS,
     TYPE_LABELS,
     PRIORITY_LABELS,
     PRIORITY_META,
+    LINK_TYPE_LABELS,
+    LINK_TYPE_ORDER,
     type Activity,
     type Attachment,
     type Comment,
     type IssueDetail,
+    type IssueLink,
+    type IssueListItem,
+    type IssueListResponse,
     type Label,
     type Member,
     type Project
@@ -28,8 +39,39 @@
   let activity = $state<Activity[]>([]);
   let labels = $state<Label[]>([]);
   let members = $state<Member[]>([]);
-  let newComment = $state('');
+  let links = $state<IssueLink[]>([]);
   let loadedKey = $state('');
+
+  // Link-issue modal
+  let showLink = $state(false);
+  let linkType = $state(1); // default: Blocks
+  let linkQuery = $state('');
+  let linkResults = $state<IssueListItem[]>([]);
+  let searching = $state(false);
+
+  // Inline title edit
+  let editingTitle = $state(false);
+  let titleDraft = $state('');
+
+  // Description edit
+  let editingDesc = $state(false);
+  let descDraft = $state('');
+
+  // New comment
+  let newComment = $state('');
+  let commentKey = $state(0); // bump to remount (clear) the comment editor
+  let posting = $state(false);
+
+  // Comment edit
+  let editingCommentId = $state<string | null>(null);
+  let editCommentDraft = $state('');
+
+  // Description collapse (persisted)
+  let descOpen = $state(loadCollapse('description', true));
+  function toggleDesc() {
+    descOpen = !descOpen;
+    saveCollapse('description', descOpen);
+  }
 
   let projectId = $derived(ctx.project?.id ?? '');
 
@@ -45,12 +87,13 @@
     try {
       issue = await api.get<IssueDetail>(`/api/projects/${projectId}/issues/${number}`);
       const id = issue.id;
-      [comments, attachments, activity, labels, members] = await Promise.all([
+      [comments, attachments, activity, labels, members, links] = await Promise.all([
         api.get<Comment[]>(`/api/issues/${id}/comments`),
         api.get<Attachment[]>(`/api/issues/${id}/attachments`),
         api.get<Activity[]>(`/api/issues/${id}/activity`),
         api.get<Label[]>(`/api/projects/${projectId}/labels`),
-        api.get<Member[]>(`/api/projects/${projectId}/members`)
+        api.get<Member[]>(`/api/projects/${projectId}/members`),
+        api.get<IssueLink[]>(`/api/issues/${id}/links`)
       ]);
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Failed to load issue');
@@ -67,18 +110,89 @@
     }
   }
 
-  async function addComment(e: Event) {
-    e.preventDefault();
-    if (!issue || !newComment.trim()) return;
+  async function refreshAttachments() {
+    if (!issue) return;
+    attachments = await api.get<Attachment[]>(`/api/issues/${issue.id}/attachments`);
+  }
+
+  // ---- title ----
+  function startEditTitle() {
+    if (!issue) return;
+    titleDraft = issue.title;
+    editingTitle = true;
+  }
+  async function saveTitle() {
+    if (!issue) return;
+    const t = titleDraft.trim();
+    editingTitle = false;
+    if (!t || t === issue.title) return;
+    await patch({ title: t });
+  }
+
+  // ---- description ----
+  function startEditDesc() {
+    if (!issue) return;
+    descDraft = issue.description ?? '';
+    editingDesc = true;
+    descOpen = true; // editing implies expanded
+    saveCollapse('description', true);
+  }
+  async function saveDesc() {
+    if (!issue) return;
+    await patch({ description: descDraft });
+    await refreshAttachments();
+    editingDesc = false;
+  }
+
+  // ---- comments ----
+  async function addComment() {
+    if (!issue || !newComment.trim() || posting) return;
+    posting = true;
     try {
       await api.post(`/api/issues/${issue.id}/comments`, { body: newComment });
       newComment = '';
+      commentKey++; // remount editor to clear it
+      [comments, activity] = await Promise.all([
+        api.get<Comment[]>(`/api/issues/${issue.id}/comments`),
+        api.get<Activity[]>(`/api/issues/${issue.id}/activity`)
+      ]);
+      await refreshAttachments();
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Comment failed');
+    } finally {
+      posting = false;
+    }
+  }
+
+  function canEditComment(c: Comment): boolean {
+    return auth.isAdmin || c.authorId === auth.user?.id;
+  }
+  function startEditComment(c: Comment) {
+    editingCommentId = c.id;
+    editCommentDraft = c.body;
+  }
+  async function saveComment(c: Comment) {
+    if (!issue) return;
+    try {
+      await api.patch(`/api/comments/${c.id}`, { body: editCommentDraft });
+      editingCommentId = null;
+      comments = await api.get<Comment[]>(`/api/issues/${issue.id}/comments`);
+      await refreshAttachments();
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+  async function deleteComment(c: Comment) {
+    if (!issue) return;
+    if (!(await confirmDialog.ask({ title: 'Delete comment', message: 'Delete this comment? This cannot be undone.', confirmText: 'Delete', danger: true }))) return;
+    try {
+      await api.del(`/api/comments/${c.id}`);
       [comments, activity] = await Promise.all([
         api.get<Comment[]>(`/api/issues/${issue.id}/comments`),
         api.get<Activity[]>(`/api/issues/${issue.id}/activity`)
       ]);
     } catch (e) {
-      toasts.error(e instanceof Error ? e.message : 'Comment failed');
+      toasts.error(e instanceof Error ? e.message : 'Delete failed');
     }
   }
 
@@ -139,6 +253,7 @@
 
   async function deleteAttachment(att: Attachment) {
     if (!issue) return;
+    if (!(await confirmDialog.ask({ title: 'Delete attachment', message: `Delete “${att.filename}”?`, confirmText: 'Delete', danger: true }))) return;
     try {
       await api.del(`/api/attachments/${att.id}`);
       attachments = await api.get<Attachment[]>(`/api/issues/${issue.id}/attachments`);
@@ -148,7 +263,8 @@
   }
 
   async function deleteIssue() {
-    if (!issue || !confirm('Delete this issue permanently?')) return;
+    if (!issue) return;
+    if (!(await confirmDialog.ask({ title: 'Delete issue', message: `Permanently delete ${issue.key}? This removes its comments and attachments too.`, confirmText: 'Delete', danger: true }))) return;
     try {
       await api.del(`/api/issues/${issue.id}`);
       toasts.success('Issue deleted');
@@ -156,6 +272,68 @@
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Delete failed');
     }
+  }
+
+  // ---- linked issues ----
+  const groupedLinks = $derived(
+    LINK_TYPE_ORDER.map((t) => ({ type: t, items: links.filter((l) => l.linkType === t) })).filter(
+      (g) => g.items.length > 0
+    )
+  );
+
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  function onLinkQuery() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(searchIssues, 250);
+  }
+  async function searchIssues() {
+    if (!issue || !linkQuery.trim()) {
+      linkResults = [];
+      return;
+    }
+    searching = true;
+    try {
+      const params = new URLSearchParams({ q: linkQuery.trim(), pageSize: '20' });
+      const res = await api.get<IssueListResponse>(`/api/projects/${projectId}/issues?${params}`);
+      const linkedIds = new Set(links.map((l) => l.issueId));
+      linkResults = res.items.filter((i) => i.id !== issue!.id && !linkedIds.has(i.id));
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Search failed');
+    } finally {
+      searching = false;
+    }
+  }
+  async function addLink(target: IssueListItem) {
+    if (!issue) return;
+    try {
+      links = await api.post<IssueLink[]>(`/api/issues/${issue.id}/links`, {
+        targetIssueId: target.id,
+        linkType
+      });
+      activity = await api.get<Activity[]>(`/api/issues/${issue.id}/activity`);
+      linkResults = linkResults.filter((i) => i.id !== target.id);
+      toasts.success(`Linked ${target.key}`);
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Link failed');
+    }
+  }
+  async function removeLink(lk: IssueLink) {
+    if (!issue) return;
+    if (!(await confirmDialog.ask({ title: 'Remove link', message: `Remove the link to ${lk.key}?`, confirmText: 'Remove', danger: true }))) return;
+    try {
+      await api.del(`/api/issue-links/${lk.id}`);
+      [links, activity] = await Promise.all([
+        api.get<IssueLink[]>(`/api/issues/${issue.id}/links`),
+        api.get<Activity[]>(`/api/issues/${issue.id}/activity`)
+      ]);
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Remove failed');
+    }
+  }
+  function closeLinkModal() {
+    showLink = false;
+    linkQuery = '';
+    linkResults = [];
   }
 
   function actionText(a: Activity): string {
@@ -171,6 +349,8 @@
       case 8: return `changed priority ${PRIORITY_LABELS[Number(a.oldValue)]} → ${PRIORITY_LABELS[Number(a.newValue)]}`;
       case 9: return `changed type ${TYPE_LABELS[Number(a.oldValue)]} → ${TYPE_LABELS[Number(a.newValue)]}`;
       case 10: return 'edited the title';
+      case 11: return `linked ${a.newValue}`;
+      case 12: return `removed link to ${a.newValue}`;
       default: return 'updated the issue';
     }
   }
@@ -194,15 +374,76 @@
           <span class="font-mono">{issue.key}</span>
           <button class="btn-danger ml-auto !py-1 !text-xs" onclick={deleteIssue}>Delete</button>
         </div>
-        <h1 class="mt-1 text-2xl font-semibold">{issue.title}</h1>
-        <p class="mt-3 whitespace-pre-wrap text-sm text-slate-700">
-          {issue.description || 'No description.'}
-        </p>
+        {#if editingTitle}
+          <!-- svelte-ignore a11y_autofocus -->
+          <input
+            class="input mt-1 text-2xl font-semibold"
+            bind:value={titleDraft}
+            autofocus
+            onkeydown={(e) => {
+              if (e.key === 'Enter') saveTitle();
+              if (e.key === 'Escape') editingTitle = false;
+            }}
+            onblur={saveTitle}
+          />
+        {:else}
+          <h1
+            class="group mt-1 flex items-start gap-2 text-2xl font-semibold"
+          >
+            <span>{issue.title}</span>
+            <button
+              class="btn-ghost mt-1 !py-0.5 !text-xs opacity-0 transition group-hover:opacity-100"
+              onclick={startEditTitle}>Edit</button
+            >
+          </h1>
+        {/if}
+
+        <div class="mt-3">
+          <div class="mb-1 flex items-center gap-1">
+            <button
+              type="button"
+              class="-m-1 flex flex-1 items-center gap-1.5 rounded p-1 text-left hover:bg-slate-50"
+              onclick={toggleDesc}
+              aria-expanded={descOpen}
+            >
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 {descOpen ? '' : '-rotate-90'}"
+              >
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+              </svg>
+              <h3 class="text-xs font-semibold text-slate-500">Description</h3>
+            </button>
+            {#if !editingDesc}
+              <button class="btn-ghost shrink-0 !py-0.5 !text-xs" onclick={startEditDesc}>Edit</button>
+            {/if}
+          </div>
+          {#if descOpen}
+            {#if editingDesc}
+              <RichEditor
+                value={issue.description ?? ''}
+                editable
+                placeholder="Describe the issue… drag, paste, or use 📷 to add images/videos"
+                issueId={issue.id}
+                onChange={(md) => (descDraft = md)}
+                onMediaAdded={refreshAttachments}
+              />
+              <div class="mt-2 flex gap-2">
+                <button class="btn-primary !py-1 !text-xs" onclick={saveDesc}>Save</button>
+                <button class="btn-ghost !py-1 !text-xs" onclick={() => (editingDesc = false)}>Cancel</button>
+              </div>
+            {:else if issue.description}
+              <RichEditor value={issue.description} />
+            {:else}
+              <p class="text-sm text-slate-400">No description.</p>
+            {/if}
+          {/if}
+        </div>
       </div>
 
       <!-- Labels -->
-      <div class="card p-5">
-        <h3 class="mb-2 text-sm font-semibold text-slate-600">Labels</h3>
+      <CollapsibleCard title="Labels" storageKey="labels">
         {#if labels.length === 0}
           <p class="text-xs text-slate-400">No labels defined for this project yet.</p>
         {:else}
@@ -218,59 +459,127 @@
             {/each}
           </div>
         {/if}
-      </div>
+      </CollapsibleCard>
+
+      <!-- Linked issues -->
+      <CollapsibleCard title="Linked issues" storageKey="links" count={links.length}>
+        {#snippet actions()}
+          <button class="btn-ghost cursor-pointer text-xs" onclick={() => (showLink = true)}>+ Link issue</button>
+        {/snippet}
+        {#if links.length === 0}
+          <p class="text-xs text-slate-400">No linked issues.</p>
+        {:else}
+          <div class="space-y-3">
+            {#each groupedLinks as group (group.type)}
+              <div>
+                <div class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {LINK_TYPE_LABELS[group.type]}
+                </div>
+                <ul class="space-y-1">
+                  {#each group.items as lk (lk.id)}
+                    <li class="flex items-center gap-2 text-sm">
+                      <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                        {STATUS_LABELS[lk.status]}
+                      </span>
+                      <a href={`/p/${lk.projectKey}/issue/${lk.number}`} class="flex min-w-0 items-center gap-1.5 hover:underline">
+                        <span class="font-mono text-xs text-slate-400">{lk.key}</span>
+                        <span class="truncate text-slate-700">{lk.title}</span>
+                      </a>
+                      <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" title="Remove link" onclick={() => removeLink(lk)}>✕</button>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </CollapsibleCard>
 
       <!-- Attachments -->
-      <div class="card p-5">
-        <div class="mb-2 flex items-center">
-          <h3 class="text-sm font-semibold text-slate-600">Attachments</h3>
-          <label class="btn-ghost ml-auto cursor-pointer text-xs">
+      <CollapsibleCard title="Attachments" storageKey="attachments" count={attachments.length}>
+        {#snippet actions()}
+          <label class="btn-ghost cursor-pointer text-xs">
             {uploading ? 'Uploading…' : '+ Upload'}
             <input type="file" class="hidden" onchange={uploadFile} disabled={uploading} />
           </label>
-        </div>
+        {/snippet}
         {#if attachments.length === 0}
           <p class="text-xs text-slate-400">No attachments.</p>
         {:else}
           <ul class="divide-y divide-slate-100 text-sm">
             {#each attachments as a (a.id)}
               <li class="flex items-center gap-2 py-1.5">
-                <button class="text-indigo-600 hover:underline" onclick={() => download(a)}>{a.filename}</button>
-                <span class="text-xs text-slate-400">{fmtSize(a.sizeBytes)}</span>
+                <AttachmentThumb att={a} />
+                <button class="truncate text-indigo-600 hover:underline" onclick={() => download(a)}>{a.filename}</button>
+                <span class="shrink-0 text-xs text-slate-400">{fmtSize(a.sizeBytes)}</span>
                 <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" onclick={() => deleteAttachment(a)}>✕</button>
               </li>
             {/each}
           </ul>
         {/if}
-      </div>
+      </CollapsibleCard>
 
       <!-- Comments -->
-      <div class="card p-5">
-        <h3 class="mb-3 text-sm font-semibold text-slate-600">Comments</h3>
+      <CollapsibleCard title="Comments" storageKey="comments" count={comments.length}>
         <div class="space-y-3">
           {#each comments as c (c.id)}
             <div class="rounded-md bg-slate-50 p-3">
               <div class="flex items-center gap-2 text-xs text-slate-500">
+                <Avatar seed={c.authorId} name={c.authorName} size={22} />
                 <span class="font-medium text-slate-700">{c.authorName}</span>
                 <span>{fmt(c.createdAt)}</span>
+                {#if c.updatedAt !== c.createdAt}<span class="text-slate-400">(edited)</span>{/if}
+                {#if canEditComment(c) && editingCommentId !== c.id}
+                  <div class="ml-auto flex gap-1">
+                    <button class="btn-ghost !py-0.5 !text-xs" onclick={() => startEditComment(c)}>Edit</button>
+                    <button class="btn-ghost !py-0.5 !text-xs text-rose-600" onclick={() => deleteComment(c)}>Delete</button>
+                  </div>
+                {/if}
               </div>
-              <p class="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
+              {#if editingCommentId === c.id}
+                <div class="mt-2">
+                  <RichEditor
+                    value={c.body}
+                    editable
+                    issueId={issue.id}
+                    onChange={(md) => (editCommentDraft = md)}
+                    onMediaAdded={refreshAttachments}
+                  />
+                  <div class="mt-2 flex gap-2">
+                    <button class="btn-primary !py-1 !text-xs" onclick={() => saveComment(c)}>Save</button>
+                    <button class="btn-ghost !py-1 !text-xs" onclick={() => (editingCommentId = null)}>Cancel</button>
+                  </div>
+                </div>
+              {:else}
+                <div class="mt-1"><RichEditor value={c.body} /></div>
+              {/if}
             </div>
           {/each}
           {#if comments.length === 0}
             <p class="text-xs text-slate-400">No comments yet.</p>
           {/if}
         </div>
-        <form onsubmit={addComment} class="mt-3">
-          <textarea class="input min-h-20" placeholder="Add a comment…" bind:value={newComment}></textarea>
-          <button class="btn-primary mt-2">Comment</button>
-        </form>
-      </div>
+        <div class="mt-3">
+          {#key commentKey}
+            <RichEditor
+              editable
+              placeholder="Add a comment… drag, paste, or use 📷 to add images/videos"
+              issueId={issue.id}
+              onChange={(md) => (newComment = md)}
+              onMediaAdded={refreshAttachments}
+            />
+          {/key}
+          <button class="btn-primary mt-2" disabled={posting || !newComment.trim()} onclick={addComment}>
+            {posting ? 'Posting…' : 'Comment'}
+          </button>
+        </div>
+      </CollapsibleCard>
     </div>
 
     <!-- Sidebar: fields + activity -->
     <div class="space-y-5">
-      <div class="card space-y-3 p-4 text-sm">
+      <CollapsibleCard title="Details" storageKey="details">
+        <div class="space-y-3 text-sm">
         <div>
           <span class="mb-1 block text-xs font-medium text-slate-500">Status</span>
           <select class="input" value={issue.status} onchange={(e) => patch({ status: Number((e.target as HTMLSelectElement).value) })}>
@@ -297,13 +606,16 @@
           </select>
         </div>
         <div class="border-t border-slate-100 pt-2 text-xs text-slate-500">
-          Reporter: {issue.reporterName}<br />
-          Created: {fmt(issue.createdAt)}
+          <div class="flex items-center gap-2">
+            <Avatar seed={issue.reporterId} name={issue.reporterName} size={20} />
+            <span>Reporter: {issue.reporterName}</span>
+          </div>
+          <div class="mt-1">Created: {fmt(issue.createdAt)}</div>
         </div>
-      </div>
+        </div>
+      </CollapsibleCard>
 
-      <div class="card p-4">
-        <h3 class="mb-3 text-sm font-semibold text-slate-600">Activity</h3>
+      <CollapsibleCard title="Activity" storageKey="activity" count={activity.length}>
         <ol class="space-y-3 text-xs">
           {#each activity as a (a.id)}
             <li class="flex gap-2">
@@ -315,10 +627,70 @@
               </div>
             </li>
           {/each}
+          {#if activity.length === 0}
+            <li class="text-slate-400">No activity yet.</li>
+          {/if}
         </ol>
-      </div>
+      </CollapsibleCard>
     </div>
   </div>
+
+  <!-- Link issue modal -->
+  {#if showLink}
+    <div
+      class="fixed inset-0 z-[55] flex items-start justify-center bg-black/40 p-4 pt-24"
+      role="presentation"
+      onclick={(e) => {
+        if (e.target === e.currentTarget) closeLinkModal();
+      }}
+    >
+      <div class="card w-full max-w-lg p-5">
+        <div class="mb-3 flex items-center">
+          <h2 class="text-base font-semibold text-slate-800">Link an issue</h2>
+          <button class="btn-ghost ml-auto !py-0.5" aria-label="Close" onclick={closeLinkModal}>✕</button>
+        </div>
+        <div class="flex gap-2">
+          <select class="input max-w-[12rem]" bind:value={linkType}>
+            {#each LINK_TYPE_LABELS as label, i}<option value={i}>{label}</option>{/each}
+          </select>
+          <!-- svelte-ignore a11y_autofocus -->
+          <input
+            class="input flex-1"
+            placeholder="Search issues by key or title…"
+            bind:value={linkQuery}
+            oninput={onLinkQuery}
+            autofocus
+          />
+        </div>
+        <div class="mt-3 max-h-72 overflow-y-auto">
+          {#if searching}
+            <p class="text-xs text-slate-400">Searching…</p>
+          {:else if linkQuery.trim() && linkResults.length === 0}
+            <p class="text-xs text-slate-400">No matching issues.</p>
+          {:else}
+            <ul class="divide-y divide-slate-100">
+              {#each linkResults as r (r.id)}
+                <li>
+                  <button
+                    class="flex w-full items-center gap-2 py-2 text-left text-sm hover:bg-slate-50"
+                    onclick={() => addLink(r)}
+                  >
+                    <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                      {STATUS_LABELS[r.status]}
+                    </span>
+                    <span class="font-mono text-xs text-slate-400">{r.key}</span>
+                    <span class="truncate text-slate-700">{r.title}</span>
+                    <span class="ml-auto text-xs text-indigo-600">+ Link</span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+        <p class="mt-3 text-[11px] text-slate-400">Links connect issues within this project.</p>
+      </div>
+    </div>
+  {/if}
 {:else}
   <p class="text-slate-400">Loading issue…</p>
 {/if}
