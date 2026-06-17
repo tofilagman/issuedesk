@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.key, p.name,\n                  COUNT(i.id) as \"total!\",\n                  COUNT(i.id) FILTER (WHERE i.status = 3) as \"done!\"\n           FROM projects p\n           LEFT JOIN issues i ON i.project_id = p.id\n           WHERE p.id = ANY($1)\n           GROUP BY p.id, p.key, p.name\n           ORDER BY COUNT(i.id) DESC, p.key\n           LIMIT 8",
+  "query": "SELECT p.key, p.name,\n                  COUNT(i.id) as \"total!\",\n                  COUNT(i.id) FILTER (WHERE i.status = 4) as \"done!\"\n           FROM projects p\n           LEFT JOIN issues i ON i.project_id = p.id\n           WHERE p.id = ANY($1)\n           GROUP BY p.id, p.key, p.name\n           ORDER BY COUNT(i.id) DESC, p.key\n           LIMIT 8",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       null
     ]
   },
-  "hash": "f07f322999b66267f9036405c68388d7a448c4fed8747a7a30283711000acf01"
+  "hash": "ac441b46e71f2cdd11434ea278a0483d24eb3412d0bae482f925db6278d11a06"
 }

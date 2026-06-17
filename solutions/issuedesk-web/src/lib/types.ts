@@ -123,11 +123,11 @@ export interface Activity {
 
 // ---- enum labels ----
 export const TYPE_LABELS = ['Bug', 'Task', 'Story', 'Epic'];
-export const STATUS_LABELS = ['To Do', 'In Progress', 'In Review', 'Done'];
+export const STATUS_LABELS = ['To Do', 'In Progress', 'Implemented', 'In Review', 'Done'];
 export const PRIORITY_LABELS = ['Low', 'Medium', 'High', 'Urgent'];
 
 // Chart colors, indexed to match the *_LABELS arrays above.
-export const STATUS_COLORS = ['#94a3b8', '#0ea5e9', '#f59e0b', '#10b981']; // todo, in-prog, review, done
+export const STATUS_COLORS = ['#94a3b8', '#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981']; // todo, in-prog, implemented, review, done
 export const PRIORITY_COLORS = ['#94a3b8', '#0ea5e9', '#f59e0b', '#f43f5e']; // low, med, high, urgent
 export const TYPE_COLORS = ['#f43f5e', '#0ea5e9', '#10b981', '#8b5cf6']; // bug, task, story, epic
 
@@ -184,8 +184,9 @@ export const LINK_TYPE_ORDER = [1, 2, 0, 3, 4];
 export const STATUS_COLUMNS = [
   { value: 0, label: 'To Do' },
   { value: 1, label: 'In Progress' },
-  { value: 2, label: 'In Review' },
-  { value: 3, label: 'Done' }
+  { value: 2, label: 'Implemented' },
+  { value: 3, label: 'In Review' },
+  { value: 4, label: 'Done' }
 ];
 
 export const TYPE_META: Record<number, { label: string; icon: string; color: string }> = {

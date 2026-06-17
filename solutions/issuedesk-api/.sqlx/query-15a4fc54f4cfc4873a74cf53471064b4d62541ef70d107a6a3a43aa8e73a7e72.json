@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) as \"c!\" FROM activity_log al\n           JOIN issues i ON i.id = al.issue_id\n           WHERE i.project_id = $1 AND al.action = 1 AND al.new_value = '4'\n             AND al.created_at > now() - interval '7 days'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "c!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "15a4fc54f4cfc4873a74cf53471064b4d62541ef70d107a6a3a43aa8e73a7e72"
+}

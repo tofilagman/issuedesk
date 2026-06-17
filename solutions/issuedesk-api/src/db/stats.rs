@@ -6,11 +6,11 @@ use crate::{
     error::Result,
 };
 
-/// Fold (index, count) rows into a fixed 4-element vector indexed by enum value.
-fn fold4(pairs: &[(i16, i64)]) -> Vec<i64> {
-    let mut v = vec![0i64; 4];
+/// Fold (index, count) rows into a fixed 5-element vector indexed by enum value.
+fn fold5(pairs: &[(i16, i64)]) -> Vec<i64> {
+    let mut v = vec![0i64; 5];
     for &(idx, count) in pairs {
-        if (0..4).contains(&idx) {
+        if (0..5).contains(&idx) {
             v[idx as usize] = count;
         }
     }
@@ -24,7 +24,7 @@ pub async fn project_stats(pool: &PgPool, project_id: Uuid) -> Result<ProjectSta
     )
     .fetch_all(pool)
     .await?;
-    let by_status = fold4(&status_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
+    let by_status = fold5(&status_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
 
     let type_rows = sqlx::query!(
         r#"SELECT type as "k!", COUNT(*) as "c!" FROM issues WHERE project_id = $1 GROUP BY type"#,
@@ -32,7 +32,7 @@ pub async fn project_stats(pool: &PgPool, project_id: Uuid) -> Result<ProjectSta
     )
     .fetch_all(pool)
     .await?;
-    let by_type = fold4(&type_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
+    let by_type = fold5(&type_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
 
     let priority_rows = sqlx::query!(
         r#"SELECT priority as "k!", COUNT(*) as "c!" FROM issues WHERE project_id = $1 GROUP BY priority"#,
@@ -40,10 +40,10 @@ pub async fn project_stats(pool: &PgPool, project_id: Uuid) -> Result<ProjectSta
     )
     .fetch_all(pool)
     .await?;
-    let by_priority = fold4(&priority_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
+    let by_priority = fold5(&priority_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
 
     let total: i64 = by_status.iter().sum();
-    let done = by_status[3];
+    let done = by_status[4];
     let open = total - done;
 
     let unassigned = sqlx::query!(
@@ -67,7 +67,7 @@ pub async fn project_stats(pool: &PgPool, project_id: Uuid) -> Result<ProjectSta
     let resolved_last7 = sqlx::query!(
         r#"SELECT COUNT(*) as "c!" FROM activity_log al
            JOIN issues i ON i.id = al.issue_id
-           WHERE i.project_id = $1 AND al.action = 1 AND al.new_value = '3'
+           WHERE i.project_id = $1 AND al.action = 1 AND al.new_value = '4'
              AND al.created_at > now() - interval '7 days'"#,
         project_id
     )
@@ -117,7 +117,7 @@ pub async fn system_stats(pool: &PgPool, project_ids: &[Uuid]) -> Result<SystemS
     )
     .fetch_all(pool)
     .await?;
-    let by_status = fold4(&status_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
+    let by_status = fold5(&status_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
 
     let type_rows = sqlx::query!(
         r#"SELECT type as "k!", COUNT(*) as "c!" FROM issues
@@ -126,7 +126,7 @@ pub async fn system_stats(pool: &PgPool, project_ids: &[Uuid]) -> Result<SystemS
     )
     .fetch_all(pool)
     .await?;
-    let by_type = fold4(&type_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
+    let by_type = fold5(&type_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
 
     let priority_rows = sqlx::query!(
         r#"SELECT priority as "k!", COUNT(*) as "c!" FROM issues
@@ -135,10 +135,10 @@ pub async fn system_stats(pool: &PgPool, project_ids: &[Uuid]) -> Result<SystemS
     )
     .fetch_all(pool)
     .await?;
-    let by_priority = fold4(&priority_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
+    let by_priority = fold5(&priority_rows.iter().map(|r| (r.k, r.c)).collect::<Vec<_>>());
 
     let issues: i64 = by_status.iter().sum();
-    let done = by_status[3];
+    let done = by_status[4];
     let open = issues - done;
     let projects = project_ids.len() as i64;
 
@@ -159,7 +159,7 @@ pub async fn system_stats(pool: &PgPool, project_ids: &[Uuid]) -> Result<SystemS
     let top_rows = sqlx::query!(
         r#"SELECT p.key, p.name,
                   COUNT(i.id) as "total!",
-                  COUNT(i.id) FILTER (WHERE i.status = 3) as "done!"
+                  COUNT(i.id) FILTER (WHERE i.status = 4) as "done!"
            FROM projects p
            LEFT JOIN issues i ON i.project_id = p.id
            WHERE p.id = ANY($1)

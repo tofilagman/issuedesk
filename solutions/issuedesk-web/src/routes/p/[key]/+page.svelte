@@ -148,7 +148,7 @@
 </div>
 
 <!-- Board -->
-<div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+<div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
   {#each STATUS_COLUMNS as col (col.value)}
     <div
       class="flex flex-col rounded-lg bg-slate-200/60 p-2"

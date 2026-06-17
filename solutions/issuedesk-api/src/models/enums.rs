@@ -30,7 +30,7 @@ int_enum!(Role { Member = 0, Admin = 1 });
 
 int_enum!(IssueType { Bug = 0, Task = 1, Story = 2, Epic = 3 });
 
-int_enum!(IssueStatus { Todo = 0, InProgress = 1, InReview = 2, Done = 3 });
+int_enum!(IssueStatus { Todo = 0, InProgress = 1, Implemented = 2, InReview = 3, Done = 4 });
 
 int_enum!(Priority { Low = 0, Medium = 1, High = 2, Urgent = 3 });
 
