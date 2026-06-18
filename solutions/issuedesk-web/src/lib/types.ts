@@ -8,6 +8,20 @@ export interface User {
   createdAt: string;
 }
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  createdBy: string;
+  lastUsedAt?: string | null;
+  createdAt: string;
+}
+
+// Returned once at creation — includes the full plaintext secret.
+export interface ApiKeyCreated extends ApiKey {
+  secret: string;
+}
+
 export interface Project {
   id: string;
   key: string;

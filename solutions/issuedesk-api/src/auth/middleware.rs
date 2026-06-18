@@ -1,23 +1,68 @@
 use axum::{
     extract::{Request, State},
+    http::Method,
     middleware::Next,
     response::Response,
 };
+use time::OffsetDateTime;
 
-use crate::{auth::jwt, error::AppError, state::AppState};
+use crate::{
+    auth::{apikey, jwt, jwt::Claims},
+    db,
+    error::AppError,
+    models::enums::Role,
+    state::AppState,
+};
 
-/// Guards `/api/**`. Validates the JWT Bearer token and enforces the
-/// `Sec-Fetch-Site` browser-lock, then stashes the decoded claims in request
-/// extensions for the `AuthUser` extractor to pick up.
+/// Guards `/api/**`. Two ways to authenticate:
 ///
-/// Note for curl/Postman: requests must include
-/// `-H 'Sec-Fetch-Site: same-origin'`.
+/// * **JWT Bearer** (the browser/SPA): validates the token and enforces the
+///   `Sec-Fetch-Site` browser-lock.
+/// * **API key** (non-browser clients, e.g. relaying a ticket to Claude):
+///   supplied via `X-API-Key` or `Authorization: Bearer idk_…`. API keys are
+///   read-only (only `GET` is allowed) and are exempt from the browser-lock,
+///   since curl/agents do not send `Sec-Fetch-Site`.
+///
+/// Either path stashes decoded `Claims` in request extensions for the
+/// `AuthUser` extractor.
+///
+/// Note for curl/Postman using a JWT: requests must include
+/// `-H 'Sec-Fetch-Site: same-origin'`. API-key requests do not.
 pub async fn require_auth(
     State(state): State<AppState>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, AppError> {
-    // --- Browser-lock (Sec-Fetch-Site) ---
+    // --- API key path (X-API-Key header, or a Bearer token shaped like a key) ---
+    if let Some(secret) = extract_api_key(&req) {
+        // Read-only: API keys may only perform safe (GET) requests.
+        if req.method() != Method::GET {
+            return Err(AppError::Forbidden(
+                "API keys are read-only".to_string(),
+            ));
+        }
+        let key = db::api_keys::find_by_hash(&state.pool, &apikey::hash(&secret))
+            .await?
+            .ok_or_else(|| AppError::Unauthorized("invalid API key".to_string()))?;
+
+        // Best-effort usage stamp; never block the request on it.
+        let _ = db::api_keys::touch(&state.pool, key.id).await;
+
+        // Synthetic principal: admin role so it can read across all projects
+        // (writes are already blocked above). `sub` is the key id, not a user.
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+        let claims = Claims {
+            sub: key.id,
+            user_name: format!("apikey:{}", key.name),
+            role: Role::Admin.as_i16(),
+            iat: now,
+            exp: now,
+        };
+        req.extensions_mut().insert(claims);
+        return Ok(next.run(req).await);
+    }
+
+    // --- Browser-lock (Sec-Fetch-Site) — JWT path only ---
     let allowed = req
         .headers()
         .get("sec-fetch-site")
@@ -42,4 +87,21 @@ pub async fn require_auth(
     req.extensions_mut().insert(claims);
 
     Ok(next.run(req).await)
+}
+
+/// Pull an API key secret from the request: a dedicated `X-API-Key` header, or
+/// an `Authorization: Bearer` token that is shaped like one of our keys.
+fn extract_api_key(req: &Request) -> Option<String> {
+    if let Some(v) = req.headers().get("x-api-key").and_then(|v| v.to_str().ok()) {
+        let v = v.trim();
+        if !v.is_empty() {
+            return Some(v.to_string());
+        }
+    }
+    let bearer = req
+        .headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))?;
+    apikey::looks_like_key(bearer).then(|| bearer.to_string())
 }

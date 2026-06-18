@@ -18,6 +18,14 @@ pub fn build(state: AppState) -> Router {
         .route("/users", get(handlers::users::list).post(handlers::users::create))
         .route("/users/{id}", patch(handlers::users::update))
         .route("/users/{id}/password", post(handlers::users::change_password))
+        // api keys (admin-only; read-only credentials for non-browser clients)
+        .route(
+            "/api-keys",
+            get(handlers::api_keys::list).post(handlers::api_keys::create),
+        )
+        .route("/api-keys/{id}", delete(handlers::api_keys::delete))
+        // tickets (resolve by public KEY-number; JSON or ?format=md)
+        .route("/tickets/{slug}", get(handlers::tickets::get))
         // projects
         .route("/projects", get(handlers::projects::list).post(handlers::projects::create))
         .route(

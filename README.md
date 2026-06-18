@@ -17,6 +17,7 @@ The whole app ships as a single ~100 MB container.
 - **Kanban board** with drag-between-columns, plus a filterable/sortable **list** view
 - **Comments**, **labels** (colored, per-project), **file attachments**, and a per-issue **activity log**
 - **Auth & roles:** JWT bearer tokens, global admin/member roles, per-project membership; admins manage users and all projects
+- **API keys:** admin-managed, read-only credentials for non-browser clients — e.g. handing a ticket to Claude straight from its URL (see below)
 - Browser-lock via `Sec-Fetch-Site` (matches the convention used across sibling projects)
 
 ## Quick start (Docker)
@@ -116,5 +117,27 @@ curl -H 'Sec-Fetch-Site: same-origin' -H 'Content-Type: application/json' \
 
 Resources: `users`, `projects`, project `members`, `issues` (list/filter, create,
 patch — the patch drives the board), `comments`, `labels`, `attachments`,
-`activity`. See [`solutions/issuedesk-api/src/router.rs`](solutions/issuedesk-api/src/router.rs)
+`activity`, `api-keys`, and `tickets`. See
+[`solutions/issuedesk-api/src/router.rs`](solutions/issuedesk-api/src/router.rs)
 for the full route table.
+
+## API keys & relaying a ticket to Claude
+
+Admins can mint **read-only API keys** under **API Keys** in the top nav. A key
+is shown in full exactly once at creation — only its SHA-256 hash is stored.
+
+Unlike the SPA's JWT, API-key requests are **exempt from the browser-lock** (so
+`curl`/agents don't need `Sec-Fetch-Site`) and may only perform `GET`s. Pass the
+key via the `X-API-Key` header (or `Authorization: Bearer idk_…`).
+
+The `tickets` endpoint resolves a ticket by its public key — the same identifier
+in any ticket URL — and can emit Markdown, so you can feed a ticket straight to
+Claude:
+
+```bash
+# Markdown (issue + comments + activity + links), ideal for an LLM
+curl -H "X-API-Key: idk_…" "http://localhost:8080/api/tickets/WAT-1?format=md"
+
+# Same data as JSON (drop ?format=md)
+curl -H "X-API-Key: idk_…" "http://localhost:8080/api/tickets/WAT-1"
+```

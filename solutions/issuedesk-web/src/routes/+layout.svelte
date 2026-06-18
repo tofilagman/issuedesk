@@ -52,6 +52,7 @@
           <a class="btn-ghost" href="/dashboard">Dashboard</a>
           {#if auth.isAdmin}
             <a class="btn-ghost" href="/admin/users">Users</a>
+            <a class="btn-ghost" href="/admin/keys">API Keys</a>
           {/if}
         </nav>
         <div class="ml-auto flex items-center gap-3 text-sm">

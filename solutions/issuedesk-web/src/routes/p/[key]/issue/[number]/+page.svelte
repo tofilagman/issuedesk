@@ -196,6 +196,11 @@
     }
   }
 
+  // Show newest comments first (the fetch returns them oldest-first).
+  const sortedComments = $derived(
+    [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  );
+
   const labelIdsOnIssue = $derived(new Set(issue?.labels.map((l) => l.id) ?? []));
   async function toggleLabel(l: Label) {
     if (!issue) return;
@@ -442,25 +447,6 @@
         </div>
       </div>
 
-      <!-- Labels -->
-      <CollapsibleCard title="Labels" storageKey="labels">
-        {#if labels.length === 0}
-          <p class="text-xs text-slate-400">No labels defined for this project yet.</p>
-        {:else}
-          <div class="flex flex-wrap gap-2">
-            {#each labels as l (l.id)}
-              <button
-                class="label-chip {labelIdsOnIssue.has(l.id) ? '' : 'opacity-40'}"
-                style={`background-color:${l.color}`}
-                onclick={() => toggleLabel(l)}
-              >
-                {l.name}
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </CollapsibleCard>
-
       <!-- Linked issues -->
       <CollapsibleCard title="Linked issues" storageKey="links" count={links.length}>
         {#snippet actions()}
@@ -522,7 +508,7 @@
       <!-- Comments -->
       <CollapsibleCard title="Comments" storageKey="comments" count={comments.length}>
         <div class="space-y-3">
-          {#each comments as c (c.id)}
+          {#each sortedComments as c (c.id)}
             <div class="rounded-md bg-slate-50 p-3">
               <div class="flex items-center gap-2 text-xs text-slate-500">
                 <Avatar seed={c.authorId} name={c.authorName} size={22} />
@@ -613,6 +599,25 @@
           <div class="mt-1">Created: {fmt(issue.createdAt)}</div>
         </div>
         </div>
+      </CollapsibleCard>
+
+      <!-- Labels -->
+      <CollapsibleCard title="Labels" storageKey="labels">
+        {#if labels.length === 0}
+          <p class="text-xs text-slate-400">No labels defined for this project yet.</p>
+        {:else}
+          <div class="flex flex-wrap gap-2">
+            {#each labels as l (l.id)}
+              <button
+                class="label-chip {labelIdsOnIssue.has(l.id) ? '' : 'opacity-40'}"
+                style={`background-color:${l.color}`}
+                onclick={() => toggleLabel(l)}
+              >
+                {l.name}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </CollapsibleCard>
 
       <CollapsibleCard title="Activity" storageKey="activity" count={activity.length}>

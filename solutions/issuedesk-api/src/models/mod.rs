@@ -46,6 +46,46 @@ impl From<UserRow> for UserDto {
     }
 }
 
+/// Database row for an API key. `key_hash` is never serialized to clients.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ApiKeyRow {
+    pub id: Uuid,
+    pub name: String,
+    pub key_hash: String,
+    pub prefix: String,
+    pub created_by: Uuid,
+    pub last_used_at: Option<OffsetDateTime>,
+    pub created_at: OffsetDateTime,
+}
+
+/// Public-facing API key shape (no hash; the full secret is only ever returned
+/// once, at creation time).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiKeyDto {
+    pub id: Uuid,
+    pub name: String,
+    pub prefix: String,
+    pub created_by: Uuid,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub last_used_at: Option<OffsetDateTime>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+}
+
+impl From<ApiKeyRow> for ApiKeyDto {
+    fn from(k: ApiKeyRow) -> Self {
+        Self {
+            id: k.id,
+            name: k.name,
+            prefix: k.prefix,
+            created_by: k.created_by,
+            last_used_at: k.last_used_at,
+            created_at: k.created_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRow {

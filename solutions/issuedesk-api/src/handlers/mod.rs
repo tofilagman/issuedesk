@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod api_keys;
 pub mod attachments;
 pub mod auth;
 pub mod comments;
@@ -8,4 +9,5 @@ pub mod links;
 pub mod members;
 pub mod projects;
 pub mod stats;
+pub mod tickets;
 pub mod users;

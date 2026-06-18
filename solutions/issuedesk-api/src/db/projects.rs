@@ -53,6 +53,21 @@ pub async fn get(pool: &PgPool, id: Uuid) -> Result<ProjectRow> {
     Ok(row)
 }
 
+/// Resolve a project by its public key (e.g. "WAT"). Case-sensitive — keys are
+/// stored uppercase.
+pub async fn find_by_key(pool: &PgPool, key: &str) -> Result<ProjectRow> {
+    let row = sqlx::query_as!(
+        ProjectRow,
+        r#"SELECT id, key, name, description, issue_seq, created_by, created_at, updated_at
+           FROM projects WHERE key = $1"#,
+        key
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("project not found".into()))?;
+    Ok(row)
+}
+
 /// Projects visible to a user: all of them for admins, otherwise the ones they
 /// are a member of.
 pub async fn list_visible(pool: &PgPool, user_id: Uuid, is_admin: bool) -> Result<Vec<ProjectRow>> {

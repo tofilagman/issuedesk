@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::models::UserDto;
+use crate::models::{ApiKeyDto, ActivityRow, CommentRow, UserDto};
 
 // ----------------------------- auth -----------------------------
 
@@ -59,6 +59,45 @@ pub struct UpdateUserRequest {
 pub struct ChangePasswordRequest {
     #[validate(length(min = 6, message = "min 6 chars"))]
     pub password: String,
+}
+
+// ----------------------------- api keys -----------------------------
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateApiKeyRequest {
+    #[validate(length(min = 1, max = 64, message = "1-64 chars"))]
+    pub name: String,
+}
+
+/// Returned once, at creation: the full plaintext `secret` plus the stored
+/// metadata. The secret is never retrievable again.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiKeyCreated {
+    pub secret: String,
+    #[serde(flatten)]
+    pub key: ApiKeyDto,
+}
+
+// ----------------------------- tickets -----------------------------
+
+/// Full ticket payload for relaying to an external client (e.g. Claude):
+/// the issue detail plus its comments and activity trail.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TicketBundle {
+    pub issue: IssueDetail,
+    pub comments: Vec<CommentRow>,
+    pub activity: Vec<ActivityRow>,
+    pub links: Vec<IssueLink>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TicketQuery {
+    /// `md` for Markdown; anything else (or absent) yields JSON.
+    pub format: Option<String>,
 }
 
 // ----------------------------- projects -----------------------------
