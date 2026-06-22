@@ -4,12 +4,7 @@
 FROM node:22-alpine AS web
 WORKDIR /web
 COPY solutions/issuedesk-web/package*.json ./
-# `npm install` (not `npm ci`): swagger-ui pulls native tree-sitter parsers as
-# *optional* deps that npm resolves differently on glibc (dev host) vs musl
-# (this alpine image), so the committed lockfile trips `npm ci`'s strict sync
-# check. `npm install` honours the locked versions but tolerates that
-# platform-specific optional drift, pulling the right musl binaries here.
-RUN npm install --no-audit --no-fund
+RUN npm ci
 COPY solutions/issuedesk-web/ ./
 RUN npm run build
 # adapter-static emits to ./build

@@ -83,7 +83,7 @@
     </p>
   </div>
   <div class="ml-auto flex items-center gap-2">
-    <a class="btn-ghost" href="/swagger" target="_blank" rel="noopener">API docs (Swagger)</a>
+    <a class="btn-ghost" href="/swagger.html" target="_blank" rel="noopener">API docs (Swagger)</a>
     <button class="btn-primary" onclick={() => (showNew = !showNew)}>New key</button>
   </div>
 </div>

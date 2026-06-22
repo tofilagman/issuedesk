@@ -61,6 +61,9 @@
   let newComment = $state('');
   let commentKey = $state(0); // bump to remount (clear) the comment editor
   let posting = $state(false);
+  // How many comments to render; "Show more" reveals the next batch.
+  const COMMENT_BATCH = 10;
+  let visibleCount = $state(COMMENT_BATCH);
 
   // Comment edit
   let editingCommentId = $state<string | null>(null);
@@ -200,6 +203,7 @@
   const sortedComments = $derived(
     [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   );
+  const visibleComments = $derived(sortedComments.slice(0, visibleCount));
 
   const labelIdsOnIssue = $derived(new Set(issue?.labels.map((l) => l.id) ?? []));
   async function toggleLabel(l: Label) {
@@ -507,8 +511,24 @@
 
       <!-- Comments -->
       <CollapsibleCard title="Comments" storageKey="comments" count={comments.length}>
+        <!-- New comment box, on top -->
+        <div class="mb-4">
+          {#key commentKey}
+            <RichEditor
+              editable
+              placeholder="Add a comment… drag, paste, or use 📷 to add images/videos"
+              issueId={issue.id}
+              onChange={(md) => (newComment = md)}
+              onMediaAdded={refreshAttachments}
+            />
+          {/key}
+          <button class="btn-primary mt-2" disabled={posting || !newComment.trim()} onclick={addComment}>
+            {posting ? 'Posting…' : 'Comment'}
+          </button>
+        </div>
+
         <div class="space-y-3">
-          {#each sortedComments as c (c.id)}
+          {#each visibleComments as c (c.id)}
             <div class="rounded-md bg-slate-50 p-3">
               <div class="flex items-center gap-2 text-xs text-slate-500">
                 <Avatar seed={c.authorId} name={c.authorName} size={22} />
@@ -545,20 +565,23 @@
             <p class="text-xs text-slate-400">No comments yet.</p>
           {/if}
         </div>
-        <div class="mt-3">
-          {#key commentKey}
-            <RichEditor
-              editable
-              placeholder="Add a comment… drag, paste, or use 📷 to add images/videos"
-              issueId={issue.id}
-              onChange={(md) => (newComment = md)}
-              onMediaAdded={refreshAttachments}
-            />
-          {/key}
-          <button class="btn-primary mt-2" disabled={posting || !newComment.trim()} onclick={addComment}>
-            {posting ? 'Posting…' : 'Comment'}
-          </button>
-        </div>
+        {#if sortedComments.length > visibleCount}
+          <div class="mt-3 flex items-center gap-3 text-xs">
+            <button
+              class="btn-ghost !text-xs"
+              onclick={() => (visibleCount += COMMENT_BATCH)}
+            >Show {Math.min(COMMENT_BATCH, sortedComments.length - visibleCount)} more</button>
+            <button
+              class="btn-ghost !text-xs"
+              onclick={() => (visibleCount = sortedComments.length)}
+            >Show all</button>
+            <span class="text-slate-400">Showing {visibleCount} of {sortedComments.length}</span>
+          </div>
+        {:else if visibleCount > COMMENT_BATCH}
+          <div class="mt-3">
+            <button class="btn-ghost !text-xs" onclick={() => (visibleCount = COMMENT_BATCH)}>Show less</button>
+          </div>
+        {/if}
       </CollapsibleCard>
     </div>
 
