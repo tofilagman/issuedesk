@@ -20,8 +20,9 @@ use crate::{
 ///   `Sec-Fetch-Site` browser-lock.
 /// * **API key** (non-browser clients, e.g. relaying a ticket to Claude):
 ///   supplied via `X-API-Key` or `Authorization: Bearer idk_…`. API keys are
-///   read-only except for posting comments (`POST …/comments`), and are exempt
-///   from the browser-lock, since curl/agents do not send `Sec-Fetch-Site`. A
+///   read-only except for managing comments (`POST`/`PATCH`/`DELETE` on a
+///   `…/comments` path), and are exempt from the browser-lock, since curl/agents
+///   do not send `Sec-Fetch-Site`. A
 ///   key acts on behalf of the user who created it (its `created_by`), so a
 ///   comment it posts is attributed to that real user.
 ///
@@ -37,13 +38,16 @@ pub async fn require_auth(
 ) -> Result<Response, AppError> {
     // --- API key path (X-API-Key header, or a Bearer token shaped like a key) ---
     if let Some(secret) = extract_api_key(&req) {
-        // Read-only, with one exception: posting a comment (`POST …/comments`).
-        // Everything else must be a safe (GET) request.
-        let is_comment_post =
-            req.method() == Method::POST && req.uri().path().ends_with("/comments");
-        if req.method() != Method::GET && !is_comment_post {
+        // Read-only, with one family of exceptions: managing comments. A key may
+        // post (`POST …/comments`), edit (`PATCH …/comments/{id}`) and delete
+        // (`DELETE …/comments/{id}`) comments. Everything else must be a safe
+        // (GET) request.
+        let path = req.uri().path();
+        let is_comment_write = matches!(*req.method(), Method::POST | Method::PATCH | Method::DELETE)
+            && (path.ends_with("/comments") || path.contains("/comments/"));
+        if req.method() != Method::GET && !is_comment_write {
             return Err(AppError::Forbidden(
-                "API keys are read-only (except posting comments)".to_string(),
+                "API keys are read-only (except managing comments)".to_string(),
             ));
         }
         let key = db::api_keys::find_by_hash(&state.pool, &apikey::hash(&secret))

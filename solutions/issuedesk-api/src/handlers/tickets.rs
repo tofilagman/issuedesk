@@ -13,7 +13,7 @@ use validator::Validate;
 use crate::{
     auth::AuthUser,
     db,
-    dto::{CreateCommentRequest, TicketBundle, TicketQuery},
+    dto::{CreateCommentRequest, TicketBundle, TicketQuery, UpdateCommentRequest},
     error::{AppError, Result},
     models::CommentRow,
     state::AppState,
@@ -86,6 +86,54 @@ pub async fn comment(
     let issue_id = resolve(&state, &user, &slug).await?;
     let row = db::comments::create(&state.pool, issue_id, user.id(), &req.body).await?;
     Ok(Json(row))
+}
+
+/// `PATCH /api/tickets/{KEY-number}/comments/{commentId}` — edit a comment on a
+/// ticket addressed by its public key. Slug-addressed counterpart to
+/// `PATCH /api/comments/{id}`. The caller must own the comment (or be an admin).
+pub async fn comment_update(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path((slug, comment_id)): Path<(String, Uuid)>,
+    Json(req): Json<UpdateCommentRequest>,
+) -> Result<Json<CommentRow>> {
+    req.validate()?;
+    let issue_id = resolve(&state, &user, &slug).await?;
+    authorize_comment(&state, &user, issue_id, comment_id).await?;
+    let row = db::comments::update(&state.pool, comment_id, &req.body).await?;
+    Ok(Json(row))
+}
+
+/// `DELETE /api/tickets/{KEY-number}/comments/{commentId}` — delete a comment on
+/// a ticket addressed by its public key. Slug-addressed counterpart to
+/// `DELETE /api/comments/{id}`. The caller must own the comment (or be an admin).
+pub async fn comment_delete(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path((slug, comment_id)): Path<(String, Uuid)>,
+) -> Result<Json<serde_json::Value>> {
+    let issue_id = resolve(&state, &user, &slug).await?;
+    authorize_comment(&state, &user, issue_id, comment_id).await?;
+    db::comments::delete(&state.pool, comment_id).await?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+/// Confirm a comment exists, belongs to the resolved ticket, and that the caller
+/// is allowed to mutate it (its author, or an admin).
+async fn authorize_comment(
+    state: &AppState,
+    user: &AuthUser,
+    issue_id: Uuid,
+    comment_id: Uuid,
+) -> Result<()> {
+    let (comment_issue, author) = db::comments::issue_and_author(&state.pool, comment_id).await?;
+    if comment_issue != issue_id {
+        return Err(AppError::NotFound("comment not found on this ticket".into()));
+    }
+    if !user.is_admin() && user.id() != author {
+        return Err(AppError::Forbidden("not your comment".into()));
+    }
+    Ok(())
 }
 
 /// Parse a `KEY-number` slug, authorize the caller against its project, and

@@ -3,14 +3,14 @@
   "info": {
     "title": "issuedesk API — API-key endpoints",
     "version": "0.1.0",
-    "description": "The subset of the issuedesk API that an **API key** can call.\n\nAPI keys are read-only — they may call any `GET` endpoint — **with one exception**: posting a comment (`POST …/comments`). Everything else (sign-in, creating/editing/deleting issues, user and key management) is reserved for the browser app and is not shown here.\n\n## Authenticating\n\nSend your key as `X-API-Key: idk_…` (or `Authorization: Bearer idk_…`). API keys are exempt from the browser-lock, so curl/agents need no extra headers. A key acts on behalf of the user who created it, so any comment it posts is attributed to that user.\n\nThe same endpoints also work from the signed-in browser app via a JWT bearer token."
+    "description": "The subset of the issuedesk API that an **API key** can call.\n\nAPI keys are read-only — they may call any `GET` endpoint — **with one family of exceptions**: managing comments. A key may post (`POST …/comments`), edit (`PATCH …/comments/{id}`) and delete (`DELETE …/comments/{id}`) comments. Everything else (sign-in, creating/editing/deleting issues, user and key management) is reserved for the browser app and is not shown here.\n\n## Authenticating\n\nSend your key as `X-API-Key: idk_…` (or `Authorization: Bearer idk_…`). API keys are exempt from the browser-lock, so curl/agents need no extra headers. A key acts on behalf of the user who created it, so any comment it posts is attributed to that user; it may edit or delete its own comments (and, as it carries admin rights, any other comment).\n\nThe same endpoints also work from the signed-in browser app via a JWT bearer token."
   },
   "servers": [{ "url": "/", "description": "This host" }],
   "tags": [
     { "name": "tickets", "description": "Relay endpoints addressed by public KEY-number — the primary surface for API-key clients" },
     { "name": "projects", "description": "Read project metadata" },
     { "name": "issues", "description": "Read issues" },
-    { "name": "comments", "description": "Read and post comments" },
+    { "name": "comments", "description": "Read, post, edit and delete comments" },
     { "name": "stats", "description": "Read dashboard figures" }
   ],
   "components": {
@@ -109,6 +109,15 @@
         "required": ["body"],
         "properties": { "body": { "type": "string", "minLength": 1 } }
       },
+      "UpdateCommentRequest": {
+        "type": "object",
+        "required": ["body"],
+        "properties": { "body": { "type": "string", "minLength": 1 } }
+      },
+      "OkResponse": {
+        "type": "object",
+        "properties": { "ok": { "type": "boolean", "example": true } }
+      },
       "Activity": {
         "type": "object",
         "properties": {
@@ -194,6 +203,40 @@
         }
       }
     },
+    "/api/tickets/{slug}/comments/{commentId}": {
+      "patch": {
+        "tags": ["tickets"],
+        "summary": "Edit a comment on a ticket by public key",
+        "description": "Slug-addressed counterpart to PATCH /api/comments/{id}. The caller must own the comment (or be an admin; API keys carry admin rights).",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" },
+          { "name": "commentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateCommentRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } },
+          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["tickets"],
+        "summary": "Delete a comment on a ticket by public key",
+        "description": "Slug-addressed counterpart to DELETE /api/comments/{id}. The caller must own the comment (or be an admin; API keys carry admin rights).",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" },
+          { "name": "commentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OkResponse" } } } },
+          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
     "/api/projects": {
       "get": {
         "tags": ["projects"],
@@ -259,6 +302,31 @@
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCommentRequest" } } } },
         "responses": { "200": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } } }
+      }
+    },
+    "/api/comments/{id}": {
+      "patch": {
+        "tags": ["comments"],
+        "summary": "Edit a comment (by id)",
+        "description": "The caller must own the comment (or be an admin; API keys carry admin rights).",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateCommentRequest" } } } },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } },
+          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["comments"],
+        "summary": "Delete a comment (by id)",
+        "description": "The caller must own the comment (or be an admin; API keys carry admin rights).",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OkResponse" } } } },
+          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
       }
     },
     "/api/stats": {

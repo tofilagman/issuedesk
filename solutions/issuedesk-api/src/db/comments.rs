@@ -67,6 +67,19 @@ pub async fn author_of(pool: &PgPool, comment_id: Uuid) -> Result<Uuid> {
     Ok(row.author_id)
 }
 
+/// Returns (issue_id, author_id) of a comment — for slug-addressed routes that
+/// must confirm the comment belongs to the resolved ticket before authorizing.
+pub async fn issue_and_author(pool: &PgPool, comment_id: Uuid) -> Result<(Uuid, Uuid)> {
+    let row = sqlx::query!(
+        "SELECT issue_id, author_id FROM comments WHERE id = $1",
+        comment_id
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("comment not found".into()))?;
+    Ok((row.issue_id, row.author_id))
+}
+
 pub async fn update(pool: &PgPool, comment_id: Uuid, body: &str) -> Result<CommentRow> {
     sqlx::query!(
         "UPDATE comments SET body = $2, updated_at = now() WHERE id = $1",

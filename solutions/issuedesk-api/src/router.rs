@@ -27,6 +27,10 @@ pub fn build(state: AppState) -> Router {
         // tickets (resolve by public KEY-number; JSON or ?format=md)
         .route("/tickets/{slug}", get(handlers::tickets::get))
         .route("/tickets/{slug}/comments", post(handlers::tickets::comment))
+        .route(
+            "/tickets/{slug}/comments/{commentId}",
+            patch(handlers::tickets::comment_update).delete(handlers::tickets::comment_delete),
+        )
         // projects
         .route("/projects", get(handlers::projects::list).post(handlers::projects::create))
         .route(
