@@ -61,6 +61,8 @@ export interface IssueListItem {
   assigneeName?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** When the issue entered its current status — used for board card aging. */
+  statusSince: string;
   labels: Label[];
 }
 

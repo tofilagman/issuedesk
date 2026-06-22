@@ -13,6 +13,12 @@
   const attachmentId = $derived(
     (node.attrs.src ?? '').match(/\/api\/attachments\/([0-9a-fA-F-]+)/)?.[1] ?? null
   );
+  // A not-yet-uploaded paste/drop is held as a local blob:/data: URL (see
+  // RichEditor's pending-media buffer). Render it straight, no auth fetch.
+  const localSrc = $derived.by(() => {
+    const s: string = node.attrs.src ?? '';
+    return s.startsWith('blob:') || s.startsWith('data:') ? s : null;
+  });
 
   let url = $state<string | null>(null);
   let failed = $state(false);
@@ -21,6 +27,13 @@
   // because svelte-tiptap mounts node views via Svelte's mount(), where $effect
   // is the reliable post-mount hook; it also re-runs if the node's src changes.
   $effect(() => {
+    // Local (pending) preview: use the blob/data URL directly. It is owned by
+    // RichEditor's buffer, so we must NOT revoke it here.
+    if (localSrc) {
+      url = localSrc;
+      failed = false;
+      return;
+    }
     const id = attachmentId;
     url = null;
     failed = false;

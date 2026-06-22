@@ -157,7 +157,14 @@ pub async fn list(
     let rows = sqlx::query!(
         r#"SELECT i.id, i.number, i.title, i.type, i.status, i.priority,
                   i.assignee_id, a.display_name as "assignee_name?",
-                  i.created_at, i.updated_at
+                  i.created_at, i.updated_at,
+                  COALESCE(
+                      (SELECT max(al.created_at) FROM activity_log al
+                       WHERE al.issue_id = i.id
+                         AND al.action = 1            -- StatusChanged
+                         AND al.new_value = i.status::text),
+                      i.created_at
+                  ) AS "status_since!"
            FROM issues i
            LEFT JOIN users a ON a.id = i.assignee_id
            WHERE i.project_id = $1
@@ -230,6 +237,7 @@ pub async fn list(
             assignee_name: r.assignee_name,
             created_at: r.created_at,
             updated_at: r.updated_at,
+            status_since: r.status_since,
             labels: labels_by_issue.get(&r.id).cloned().unwrap_or_default(),
         })
         .collect();

@@ -40,6 +40,11 @@
   let uploading = $state(false);
   // Bumped on every transaction so toolbar active-states stay reactive.
   let tick = $state(0);
+  // Media pasted/dropped/picked before the issue exists (creation flow) is held
+  // here as `blobUrl -> File` and shown via a local preview; it is uploaded for
+  // real once the issue is saved (see uploadPending). Not reactive — read
+  // imperatively by the parent via bind:this.
+  const pending = new Map<string, File>();
 
   // tiptap-markdown augments editor.storage at runtime but not in the types.
   function mdStorage(e: Editor): { getMarkdown(): string } {
@@ -55,6 +60,43 @@
   }
   export function focusEditor() {
     editor?.commands.focus();
+  }
+  /** True if media was buffered before the issue existed (creation flow). */
+  export function hasPendingMedia(): boolean {
+    return pending.size > 0;
+  }
+  /**
+   * Upload everything buffered during creation against the now-saved issue, and
+   * rewrite each placeholder blob URL in the document to the real attachment
+   * URL. After this resolves, `getMarkdown()` returns persistable content.
+   */
+  export async function uploadPending(newIssueId: string): Promise<void> {
+    if (!editor) return;
+    for (const [blobUrl, file] of pending) {
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const att = await api.upload<{ id: string; mimeType: string; filename: string }>(
+          `/api/issues/${newIssueId}/attachments`,
+          fd
+        );
+        const realUrl = api.downloadUrl(att.id);
+        const tr = editor.state.tr;
+        editor.state.doc.descendants((n, pos) => {
+          if ((n.type.name === 'image' || n.type.name === 'video') && n.attrs.src === blobUrl) {
+            tr.setNodeMarkup(pos, undefined, { ...n.attrs, src: realUrl });
+          }
+        });
+        if (tr.docChanged) editor.view.dispatch(tr);
+        onMediaAdded?.();
+      } catch (e) {
+        toasts.error(e instanceof Error ? e.message : 'Upload failed');
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
+    }
+    pending.clear();
+    onChange?.(getMarkdown());
   }
 
   onMount(() => {
@@ -95,7 +137,11 @@
     });
   });
 
-  onDestroy(() => editor?.destroy());
+  onDestroy(() => {
+    // Free any previews never flushed (e.g. issue creation cancelled).
+    for (const blobUrl of pending.keys()) URL.revokeObjectURL(blobUrl);
+    editor?.destroy();
+  });
 
   // Toggle editable reactively without rebuilding the editor.
   $effect(() => {
@@ -146,10 +192,23 @@
   }
 
   // ---- media upload ----
+  function insertMediaNode(file: File, src: string, name: string) {
+    if (!editor) return;
+    if (file.type.startsWith('video/')) {
+      editor.chain().focus().setVideo({ src, title: name }).run();
+    } else {
+      editor.chain().focus().setImage({ src, alt: name }).run();
+    }
+  }
+
   async function uploadAndInsert(file: File) {
     if (!editor) return;
+    // No issue yet (creation flow): buffer the file and show a local preview;
+    // the real upload happens on save via uploadPending().
     if (!issueId) {
-      toasts.error('Save the issue first, then you can add media.');
+      const blobUrl = URL.createObjectURL(file);
+      pending.set(blobUrl, file);
+      insertMediaNode(file, blobUrl, file.name);
       return;
     }
     const fd = new FormData();
@@ -160,12 +219,7 @@
         `/api/issues/${issueId}/attachments`,
         fd
       );
-      const url = api.downloadUrl(att.id);
-      if (att.mimeType.startsWith('video/')) {
-        editor.chain().focus().setVideo({ src: url, title: att.filename }).run();
-      } else {
-        editor.chain().focus().setImage({ src: url, alt: att.filename }).run();
-      }
+      insertMediaNode(file, api.downloadUrl(att.id), att.filename);
       onMediaAdded?.();
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Upload failed');
@@ -221,8 +275,8 @@
       <button
         type="button"
         class="te-btn"
-        title={issueId ? 'Insert image or video' : 'Save the issue first to add media'}
-        disabled={!issueId || uploading}
+        title="Insert image or video"
+        disabled={uploading}
         onclick={() => fileInput?.click()}>{uploading ? '…' : '📷'}</button>
       <input
         bind:this={fileInput}

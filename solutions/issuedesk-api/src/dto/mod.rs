@@ -194,6 +194,10 @@ pub struct IssueListItem {
     pub created_at: OffsetDateTime,
     #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
+    /// When the issue entered its current status (for board card aging). Falls
+    /// back to `created_at` if it has never changed status.
+    #[serde(with = "time::serde::rfc3339")]
+    pub status_since: OffsetDateTime,
     pub labels: Vec<crate::models::LabelRow>,
 }
 

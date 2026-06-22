@@ -82,7 +82,10 @@
       Read-only credentials for relaying tickets to external clients (e.g. Claude).
     </p>
   </div>
-  <button class="btn-primary ml-auto" onclick={() => (showNew = !showNew)}>New key</button>
+  <div class="ml-auto flex items-center gap-2">
+    <a class="btn-ghost" href="/swagger" target="_blank" rel="noopener">API docs (Swagger)</a>
+    <button class="btn-primary" onclick={() => (showNew = !showNew)}>New key</button>
+  </div>
 </div>
 
 {#if showNew}

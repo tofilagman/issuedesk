@@ -7,11 +7,15 @@ use axum::{
 use std::fmt::Write as _;
 use time::format_description::well_known::Rfc3339;
 
+use uuid::Uuid;
+use validator::Validate;
+
 use crate::{
     auth::AuthUser,
     db,
-    dto::{TicketBundle, TicketQuery},
+    dto::{CreateCommentRequest, TicketBundle, TicketQuery},
     error::{AppError, Result},
+    models::CommentRow,
     state::AppState,
 };
 
@@ -68,7 +72,25 @@ pub async fn get(
     }
 }
 
-async fn load(state: &AppState, user: &AuthUser, slug: &str) -> Result<TicketBundle> {
+/// `POST /api/tickets/{KEY-number}/comments` — add a comment to a ticket by its
+/// public key (e.g. `WAT-1`). The slug-addressed counterpart to
+/// `POST /api/issues/{id}/comments`, so a relay client (API key) can comment
+/// back with only the key from the ticket URL.
+pub async fn comment(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(slug): Path<String>,
+    Json(req): Json<CreateCommentRequest>,
+) -> Result<Json<CommentRow>> {
+    req.validate()?;
+    let issue_id = resolve(&state, &user, &slug).await?;
+    let row = db::comments::create(&state.pool, issue_id, user.id(), &req.body).await?;
+    Ok(Json(row))
+}
+
+/// Parse a `KEY-number` slug, authorize the caller against its project, and
+/// return the issue id. Shared by the ticket read and comment endpoints.
+async fn resolve(state: &AppState, user: &AuthUser, slug: &str) -> Result<Uuid> {
     // Split "WAT-1" into key + number on the final hyphen.
     let (key, num) = slug
         .rsplit_once('-')
@@ -80,7 +102,11 @@ async fn load(state: &AppState, user: &AuthUser, slug: &str) -> Result<TicketBun
     let project = db::projects::find_by_key(&state.pool, &key.to_uppercase()).await?;
     db::authorize_project(&state.pool, user, project.id).await?;
 
-    let issue_id = db::issues::id_by_number(&state.pool, project.id, number).await?;
+    db::issues::id_by_number(&state.pool, project.id, number).await
+}
+
+async fn load(state: &AppState, user: &AuthUser, slug: &str) -> Result<TicketBundle> {
+    let issue_id = resolve(state, user, slug).await?;
     let issue = db::issues::get_detail(&state.pool, issue_id).await?;
     let comments = db::comments::list(&state.pool, issue_id).await?;
     let activity = db::activity::list(&state.pool, issue_id).await?;

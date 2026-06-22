@@ -20,8 +20,10 @@ use crate::{
 ///   `Sec-Fetch-Site` browser-lock.
 /// * **API key** (non-browser clients, e.g. relaying a ticket to Claude):
 ///   supplied via `X-API-Key` or `Authorization: Bearer idk_…`. API keys are
-///   read-only (only `GET` is allowed) and are exempt from the browser-lock,
-///   since curl/agents do not send `Sec-Fetch-Site`.
+///   read-only except for posting comments (`POST …/comments`), and are exempt
+///   from the browser-lock, since curl/agents do not send `Sec-Fetch-Site`. A
+///   key acts on behalf of the user who created it (its `created_by`), so a
+///   comment it posts is attributed to that real user.
 ///
 /// Either path stashes decoded `Claims` in request extensions for the
 /// `AuthUser` extractor.
@@ -35,10 +37,13 @@ pub async fn require_auth(
 ) -> Result<Response, AppError> {
     // --- API key path (X-API-Key header, or a Bearer token shaped like a key) ---
     if let Some(secret) = extract_api_key(&req) {
-        // Read-only: API keys may only perform safe (GET) requests.
-        if req.method() != Method::GET {
+        // Read-only, with one exception: posting a comment (`POST …/comments`).
+        // Everything else must be a safe (GET) request.
+        let is_comment_post =
+            req.method() == Method::POST && req.uri().path().ends_with("/comments");
+        if req.method() != Method::GET && !is_comment_post {
             return Err(AppError::Forbidden(
-                "API keys are read-only".to_string(),
+                "API keys are read-only (except posting comments)".to_string(),
             ));
         }
         let key = db::api_keys::find_by_hash(&state.pool, &apikey::hash(&secret))
@@ -48,11 +53,12 @@ pub async fn require_auth(
         // Best-effort usage stamp; never block the request on it.
         let _ = db::api_keys::touch(&state.pool, key.id).await;
 
-        // Synthetic principal: admin role so it can read across all projects
-        // (writes are already blocked above). `sub` is the key id, not a user.
+        // Synthetic principal: admin role so it can read across all projects.
+        // `sub` is the key's creator, so a comment it posts is attributed to a
+        // real user and satisfies the comments.author_id foreign key.
         let now = OffsetDateTime::now_utc().unix_timestamp();
         let claims = Claims {
-            sub: key.id,
+            sub: key.created_by,
             user_name: format!("apikey:{}", key.name),
             role: Role::Admin.as_i16(),
             iat: now,

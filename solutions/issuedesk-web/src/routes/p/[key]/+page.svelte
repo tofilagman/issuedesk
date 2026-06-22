@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
+  import { getContext, onMount } from 'svelte';
   import { api } from '$lib/api';
   import { toasts } from '$lib/stores/toast.svelte';
   import RichEditor from '$lib/editor/RichEditor.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
+  import { ticketAging } from '$lib/aging';
   import {
     STATUS_COLUMNS,
     TYPE_META,
@@ -35,8 +36,21 @@
   let showNew = $state(false);
   let nf = $state({ title: '', type: 1, priority: 1, assigneeId: '', description: '' });
   let creating = $state(false);
+  // RichEditor instance, for flushing media pasted before the issue exists.
+  let editorRef = $state<{
+    getMarkdown(): string;
+    hasPendingMedia(): boolean;
+    uploadPending(issueId: string): Promise<void>;
+  } | null>(null);
 
   let dragId = $state<string | null>(null);
+
+  // Drives card aging; refreshed periodically so badges stay current without a reload.
+  let now = $state(Date.now());
+  onMount(() => {
+    const t = setInterval(() => (now = Date.now()), 60_000);
+    return () => clearInterval(t);
+  });
 
   let projectId = $derived(ctx.project?.id ?? '');
 
@@ -106,13 +120,21 @@
     e.preventDefault();
     creating = true;
     try {
-      await api.post(`/api/projects/${projectId}/issues`, {
+      // Images/videos pasted before the issue existed are buffered in the
+      // editor. Create the issue first, then upload that media against the new
+      // id and patch the description (which now holds blob: placeholders).
+      const hasMedia = editorRef?.hasPendingMedia() ?? false;
+      const created = await api.post<{ id: string }>(`/api/projects/${projectId}/issues`, {
         title: nf.title,
         type: nf.type,
         priority: nf.priority,
         assigneeId: nf.assigneeId || null,
-        description: nf.description || null
+        description: hasMedia ? null : nf.description || null
       });
+      if (hasMedia && editorRef) {
+        await editorRef.uploadPending(created.id);
+        await api.patch(`/api/issues/${created.id}`, { description: editorRef.getMarkdown() || null });
+      }
       toasts.success('Issue created');
       showNew = false;
       nf = { title: '', type: 1, priority: 1, assigneeId: '', description: '' };
@@ -163,6 +185,7 @@
       </div>
       <div class="flex min-h-[3rem] flex-col gap-2">
         {#each byStatus(col.value) as issue (issue.id)}
+          {@const aging = ticketAging(issue.statusSince, issue.status, col.label, now)}
           <a
             href={`/p/${ctx.project?.key}/issue/${issue.number}`}
             class="card block cursor-grab p-3 active:cursor-grabbing"
@@ -174,6 +197,17 @@
                 {TYPE_META[issue.type].icon}
               </span>
               <span class="font-mono">{issue.key}</span>
+              {#if aging}
+                <span
+                  class="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium {aging.level ===
+                  'stale'
+                    ? 'bg-rose-100 text-rose-700'
+                    : 'bg-amber-100 text-amber-700'}"
+                  title={aging.title}
+                >
+                  ⏱ {aging.label}
+                </span>
+              {/if}
               <span
                 class="ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium {PRIORITY_META[issue.priority].color}"
               >
@@ -239,8 +273,9 @@
       <div>
         <span class="mb-1 block text-sm font-medium">Description</span>
         <RichEditor
+          bind:this={editorRef}
           editable
-          placeholder="Describe the issue… (add images/videos after creating)"
+          placeholder="Describe the issue… paste or drop images/videos"
           onChange={(md) => (nf.description = md)}
         />
       </div>
