@@ -4,6 +4,7 @@
   import StarterKit from '@tiptap/starter-kit';
   import Image from '@tiptap/extension-image';
   import Placeholder from '@tiptap/extension-placeholder';
+  import { TableKit } from '@tiptap/extension-table/kit';
   import { Markdown } from 'tiptap-markdown';
   import { SvelteNodeViewRenderer } from 'svelte-tiptap';
   import { Video } from './Video';
@@ -121,6 +122,7 @@
         ImageWithView,
         VideoWithView,
         Placeholder.configure({ placeholder }),
+        TableKit.configure({ table: { resizable: true } }),
         Markdown.configure({ html: true, transformPastedText: true, linkify: true })
       ],
       editorProps: {
@@ -175,7 +177,8 @@
       bullet: e?.isActive('bulletList') ?? false,
       ordered: e?.isActive('orderedList') ?? false,
       quote: e?.isActive('blockquote') ?? false,
-      link: e?.isActive('link') ?? false
+      link: e?.isActive('link') ?? false,
+      table: e?.isActive('table') ?? false
     };
   });
 
@@ -275,9 +278,37 @@
       <button
         type="button"
         class="te-btn"
+        class:te-on={active.table}
+        title="Insert table"
+        onclick={() =>
+          editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+        <svg viewBox="0 0 16 16" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="1.5" y="2.5" width="13" height="11" rx="1" />
+          <line x1="1.5" y1="6" x2="14.5" y2="6" />
+          <line x1="1.5" y1="10" x2="14.5" y2="10" />
+          <line x1="6" y1="2.5" x2="6" y2="13.5" />
+          <line x1="10.5" y1="2.5" x2="10.5" y2="13.5" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        class="te-btn"
         title="Insert image or video"
         disabled={uploading}
         onclick={() => fileInput?.click()}>{uploading ? '…' : '📷'}</button>
+      {#if active.table}
+        <span class="te-sep"></span>
+        <button type="button" class="te-btn" title="Add column"
+          onclick={() => editor?.chain().focus().addColumnAfter().run()}>+Col</button>
+        <button type="button" class="te-btn" title="Add row"
+          onclick={() => editor?.chain().focus().addRowAfter().run()}>+Row</button>
+        <button type="button" class="te-btn" title="Delete column"
+          onclick={() => editor?.chain().focus().deleteColumn().run()}>−Col</button>
+        <button type="button" class="te-btn" title="Delete row"
+          onclick={() => editor?.chain().focus().deleteRow().run()}>−Row</button>
+        <button type="button" class="te-btn" title="Delete table"
+          onclick={() => editor?.chain().focus().deleteTable().run()}>🗑</button>
+      {/if}
       <input
         bind:this={fileInput}
         type="file"

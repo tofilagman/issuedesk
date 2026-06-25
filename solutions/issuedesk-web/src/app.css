@@ -104,6 +104,36 @@ body {
 .tiptap hr {
   @apply my-3 border-slate-200;
 }
+/* Tables */
+.tiptap .tableWrapper {
+  @apply my-3 overflow-x-auto;
+}
+.tiptap table {
+  @apply w-full border-collapse text-sm;
+  table-layout: fixed;
+}
+.tiptap th,
+.tiptap td {
+  @apply relative min-w-[3rem] border border-slate-300 px-2 py-1 align-top;
+}
+.tiptap th {
+  @apply bg-slate-50 text-left font-semibold text-slate-900;
+}
+.tiptap th > *,
+.tiptap td > * {
+  @apply my-0;
+}
+/* Selected-cell overlay + column resize handle (editable only) */
+.tiptap .selectedCell::after {
+  content: '';
+  @apply pointer-events-none absolute inset-0 z-10 bg-indigo-200/40;
+}
+.tiptap .column-resize-handle {
+  @apply pointer-events-none absolute -bottom-px -top-px right-[-2px] z-20 w-1 bg-indigo-400;
+}
+.tiptap.resize-cursor {
+  cursor: col-resize;
+}
 /* Placeholder (empty editable) */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
