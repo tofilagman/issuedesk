@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Multipart, Path, Query, State},
     http::header,
     response::{IntoResponse, Response},
     Json,
@@ -15,7 +15,8 @@ use crate::{
     db,
     dto::{CreateCommentRequest, TicketBundle, TicketQuery, UpdateCommentRequest},
     error::{AppError, Result},
-    models::CommentRow,
+    handlers::attachments,
+    models::{AttachmentRow, CommentRow},
     state::AppState,
 };
 
@@ -118,6 +119,35 @@ pub async fn comment_delete(
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 
+/// `GET /api/tickets/{KEY-number}/attachments` — list a ticket's attachments by
+/// its public key. Slug-addressed counterpart to
+/// `GET /api/issues/{id}/attachments`.
+pub async fn attachment_list(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(slug): Path<String>,
+) -> Result<Json<Vec<AttachmentRow>>> {
+    let issue_id = resolve(&state, &user, &slug).await?;
+    let rows = db::attachments::list(&state.pool, issue_id).await?;
+    Ok(Json(rows))
+}
+
+/// `POST /api/tickets/{KEY-number}/attachments` — upload a file to a ticket by
+/// its public key (multipart/form-data, first file field). Slug-addressed
+/// counterpart to `POST /api/issues/{id}/attachments`, so a relay client (API
+/// key) can attach a file when commenting back with only the key from the URL.
+/// The returned attachment id downloads via `GET /api/attachments/{id}`.
+pub async fn attachment_upload(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(slug): Path<String>,
+    multipart: Multipart,
+) -> Result<Json<AttachmentRow>> {
+    let issue_id = resolve(&state, &user, &slug).await?;
+    let row = attachments::store_upload(&state, issue_id, user.id(), multipart).await?;
+    Ok(Json(row))
+}
+
 /// Confirm a comment exists, belongs to the resolved ticket, and that the caller
 /// is allowed to mutate it (its author, or an admin).
 async fn authorize_comment(
@@ -159,17 +189,35 @@ async fn load(state: &AppState, user: &AuthUser, slug: &str) -> Result<TicketBun
     let comments = db::comments::list(&state.pool, issue_id).await?;
     let activity = db::activity::list(&state.pool, issue_id).await?;
     let links = db::links::list(&state.pool, issue_id).await?;
+    let attachments = db::attachments::list(&state.pool, issue_id).await?;
 
     Ok(TicketBundle {
         issue,
         comments,
         activity,
         links,
+        attachments,
     })
 }
 
 fn fmt_time(t: time::OffsetDateTime) -> String {
     t.format(&Rfc3339).unwrap_or_default()
+}
+
+/// Human-readable byte size for the Markdown attachment list (e.g. "1.4 MB").
+fn human_size(bytes: i64) -> String {
+    const UNITS: [&str; 4] = ["B", "KB", "MB", "GB"];
+    let mut size = bytes as f64;
+    let mut unit = 0;
+    while size >= 1024.0 && unit < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{bytes} {}", UNITS[unit])
+    } else {
+        format!("{size:.1} {}", UNITS[unit])
+    }
 }
 
 fn to_markdown(b: &TicketBundle) -> String {
@@ -219,6 +267,22 @@ fn to_markdown(b: &TicketBundle) -> String {
                 l.key,
                 l.title,
                 label(&STATUS, l.status)
+            );
+        }
+        let _ = writeln!(s);
+    }
+
+    if !b.attachments.is_empty() {
+        let _ = writeln!(s, "## Attachments ({})", b.attachments.len());
+        let _ = writeln!(s);
+        for a in &b.attachments {
+            let _ = writeln!(
+                s,
+                "- [{}](/api/attachments/{}) — {} ({})",
+                a.filename,
+                a.id,
+                human_size(a.size_bytes),
+                a.mime_type
             );
         }
         let _ = writeln!(s);

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH ranked AS (\n               SELECT id, row_number() OVER (ORDER BY board_position, number DESC) AS rn\n               FROM issues WHERE project_id = $1 AND status = $2\n           )\n           UPDATE issues i SET board_position = r.rn\n           FROM ranked r WHERE r.id = i.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f25e47bfce7015e73bef4a051965f1236b394ed7ba9d190c02a32dd23507f714"
+}

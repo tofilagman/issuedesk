@@ -8,7 +8,7 @@ use validator::Validate;
 use crate::{
     auth::AuthUser,
     db,
-    dto::{CreateIssueRequest, IssueDetail, IssueFilter, IssueListResponse, UpdateIssueRequest},
+    dto::{CreateIssueRequest, IssueDetail, IssueFilter, IssueListResponse, ReorderRequest, UpdateIssueRequest},
     error::Result,
     state::AppState,
 };
@@ -81,5 +81,19 @@ pub async fn delete(
     let project_id = db::issues::project_of(&state.pool, issue_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     db::issues::delete(&state.pool, issue_id).await?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+/// `PATCH /api/issues/{id}/position` — move an issue within/into a board column.
+pub async fn reorder(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(issue_id): Path<Uuid>,
+    Json(req): Json<ReorderRequest>,
+) -> Result<Json<serde_json::Value>> {
+    let project_id = db::issues::project_of(&state.pool, issue_id).await?;
+    db::authorize_project(&state.pool, &user, project_id).await?;
+    req.validate()?;
+    db::issues::reorder(&state.pool, issue_id, user.id(), &req).await?;
     Ok(Json(serde_json::json!({ "ok": true })))
 }

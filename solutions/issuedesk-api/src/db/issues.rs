@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    dto::{CreateIssueRequest, IssueDetail, IssueFilter, IssueListItem, IssueListResponse, UpdateIssueRequest},
+    dto::{CreateIssueRequest, IssueDetail, IssueFilter, IssueListItem, IssueListResponse, ReorderRequest, UpdateIssueRequest},
     error::{AppError, Result},
     models::{enums::ActivityAction, LabelRow},
 };
@@ -32,10 +32,20 @@ pub async fn create(
     let r#type = req.r#type.unwrap_or(1);
     let priority = req.priority.unwrap_or(1);
 
+    // New issues land at the top of the Todo column (status 0): one step above
+    // whatever is currently first there.
+    let board_position = sqlx::query_scalar!(
+        "SELECT COALESCE(MIN(board_position), 1) - 1 FROM issues WHERE project_id = $1 AND status = 0",
+        project_id
+    )
+    .fetch_one(&mut *tx)
+    .await?
+    .unwrap_or(0.0);
+
     let issue_id = sqlx::query!(
         r#"INSERT INTO issues
-              (project_id, number, title, description, type, status, priority, assignee_id, reporter_id)
-           VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8)
+              (project_id, number, title, description, type, status, priority, assignee_id, reporter_id, board_position)
+           VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9)
            RETURNING id"#,
         project_id,
         seq,
@@ -44,7 +54,8 @@ pub async fn create(
         r#type,
         priority,
         req.assignee_id,
-        reporter_id
+        reporter_id,
+        board_position
     )
     .fetch_one(&mut *tx)
     .await?
@@ -153,6 +164,8 @@ pub async fn list(
     let page_size = f.page_size.unwrap_or(200).clamp(1, 500);
     let offset = (page - 1) * page_size;
     let q_like = f.q.as_ref().map(|s| format!("%{s}%"));
+    // The board wants manual ordering; the list wants newest-first.
+    let sort_board = f.sort.as_deref() == Some("board");
 
     let rows = sqlx::query!(
         r#"SELECT i.id, i.number, i.title, i.type, i.status, i.priority,
@@ -177,7 +190,7 @@ pub async fn list(
              AND ($7::uuid     IS NULL OR EXISTS(
                     SELECT 1 FROM issue_labels il
                     WHERE il.issue_id = i.id AND il.label_id = $7))
-           ORDER BY i.number DESC
+           ORDER BY (CASE WHEN $11 THEN i.board_position ELSE 0 END), i.number DESC
            LIMIT $8 OFFSET $9"#,
         project_id,
         f.status,
@@ -188,7 +201,8 @@ pub async fn list(
         f.label_id,
         page_size,
         offset,
-        project_key
+        project_key,
+        sort_board
     )
     .fetch_all(pool)
     .await?;
@@ -282,10 +296,30 @@ pub async fn update(
         None => cur.assignee_id, // unchanged
     };
 
+    // When the status changes outside the board's drag-reorder (e.g. from the
+    // issue detail page), drop the card at the top of its new column so it has a
+    // sensible board position instead of keeping the old column's rank.
+    let new_position = if new_status != cur.status {
+        sqlx::query_scalar!(
+            "SELECT COALESCE(MIN(board_position), 1) - 1 FROM issues
+             WHERE project_id = (SELECT project_id FROM issues WHERE id = $1) AND status = $2",
+            issue_id,
+            new_status
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .unwrap_or(0.0)
+    } else {
+        // Unchanged column: keep the current rank.
+        sqlx::query_scalar!("SELECT board_position FROM issues WHERE id = $1", issue_id)
+            .fetch_one(&mut *tx)
+            .await?
+    };
+
     sqlx::query!(
         r#"UPDATE issues SET
               title = $2, description = $3, type = $4, status = $5, priority = $6,
-              assignee_id = $7, updated_at = now()
+              assignee_id = $7, board_position = $8, updated_at = now()
            WHERE id = $1"#,
         issue_id,
         new_title,
@@ -293,7 +327,8 @@ pub async fn update(
         new_type,
         new_status,
         new_priority,
-        new_assignee
+        new_assignee,
+        new_position
     )
     .execute(&mut *tx)
     .await?;
@@ -317,6 +352,73 @@ pub async fn update(
 
     tx.commit().await?;
     get_detail(pool, issue_id).await
+}
+
+/// Reorder an issue within (or into) a status column for the Kanban board. The
+/// new rank is the midpoint between its target neighbors; either may be absent
+/// when dropped at an end. Logs a status change if the column changed.
+pub async fn reorder(
+    pool: &PgPool,
+    issue_id: Uuid,
+    actor_id: Uuid,
+    req: &ReorderRequest,
+) -> Result<()> {
+    let mut tx = pool.begin().await?;
+
+    // Lock the row; we need its project (to scope neighbors) and old status.
+    let cur = sqlx::query!(
+        "SELECT project_id, status FROM issues WHERE id = $1 FOR UPDATE",
+        issue_id
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| AppError::NotFound("issue not found".into()))?;
+
+    let before = neighbor_pos(&mut tx, cur.project_id, req.before_id).await?;
+    let after = neighbor_pos(&mut tx, cur.project_id, req.after_id).await?;
+
+    let new_pos = match (before, after) {
+        (Some(b), Some(a)) if (b - a).abs() < 1e-6 => {
+            // Fractional gap collapsed — renumber the column to integers and retry.
+            renormalize(&mut tx, cur.project_id, req.status).await?;
+            let b = neighbor_pos(&mut tx, cur.project_id, req.before_id)
+                .await?
+                .unwrap_or(0.0);
+            let a = neighbor_pos(&mut tx, cur.project_id, req.after_id)
+                .await?
+                .unwrap_or(b + 2.0);
+            (b + a) / 2.0
+        }
+        (Some(b), Some(a)) => (b + a) / 2.0,
+        (Some(b), None) => b + 1.0, // dropped at the bottom
+        (None, Some(a)) => a - 1.0, // dropped at the top
+        (None, None) => 0.0,        // empty column
+    };
+
+    sqlx::query!(
+        "UPDATE issues SET status = $2, board_position = $3, updated_at = now() WHERE id = $1",
+        issue_id,
+        req.status,
+        new_pos
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    if req.status != cur.status {
+        log_change(
+            &mut tx,
+            issue_id,
+            actor_id,
+            ActivityAction::StatusChanged,
+            "status",
+            Some(cur.status.to_string()),
+            Some(req.status.to_string()),
+        )
+        .await?;
+    }
+
+    tx.commit().await?;
+    Ok(())
 }
 
 pub async fn delete(pool: &PgPool, issue_id: Uuid) -> Result<()> {
@@ -349,6 +451,46 @@ async fn log_change(
         field,
         old_value,
         new_value
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// Board position of a neighbor card (scoped to the project). `None` when no
+/// neighbor id was given or it no longer exists.
+async fn neighbor_pos(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    project_id: Uuid,
+    id: Option<Uuid>,
+) -> Result<Option<f64>> {
+    let Some(id) = id else { return Ok(None) };
+    let pos = sqlx::query_scalar!(
+        "SELECT board_position FROM issues WHERE id = $1 AND project_id = $2",
+        id,
+        project_id
+    )
+    .fetch_optional(&mut **tx)
+    .await?;
+    Ok(pos)
+}
+
+/// Renumber a column's positions to 1..n by their current order. Called when
+/// fractional midpoints have collapsed below float precision.
+async fn renormalize(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    project_id: Uuid,
+    status: i16,
+) -> Result<()> {
+    sqlx::query!(
+        r#"WITH ranked AS (
+               SELECT id, row_number() OVER (ORDER BY board_position, number DESC) AS rn
+               FROM issues WHERE project_id = $1 AND status = $2
+           )
+           UPDATE issues i SET board_position = r.rn
+           FROM ranked r WHERE r.id = i.id"#,
+        project_id,
+        status
     )
     .execute(&mut **tx)
     .await?;

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(MIN(board_position), 1) - 1 FROM issues\n             WHERE project_id = (SELECT project_id FROM issues WHERE id = $1) AND status = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0e0b3d56686f7005dd391bd6f2df5c095d469edf6765e64a46ee2fbd7f83ca5a"
+}

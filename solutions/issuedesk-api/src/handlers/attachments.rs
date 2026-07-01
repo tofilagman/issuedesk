@@ -34,10 +34,27 @@ pub async fn upload(
     State(state): State<AppState>,
     user: AuthUser,
     Path(issue_id): Path<Uuid>,
-    mut multipart: Multipart,
+    multipart: Multipart,
 ) -> Result<Json<AttachmentRow>> {
     let project_id = db::issues::project_of(&state.pool, issue_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;
+    let row = store_upload(&state, issue_id, user.id(), multipart).await?;
+    Ok(Json(row))
+}
+
+/// Stream the first file field of a multipart body to disk (enforcing the size
+/// limit) and record it against `issue_id`. The caller is responsible for
+/// authorizing access to the issue first. Shared by the id-addressed upload
+/// handler and the slug-addressed ticket relay endpoint.
+pub async fn store_upload(
+    state: &AppState,
+    issue_id: Uuid,
+    uploaded_by: Uuid,
+    mut multipart: Multipart,
+) -> Result<AttachmentRow> {
+    // Needed only to shard files on disk by project; access is authorized by the
+    // caller before we get here.
+    let project_id = db::issues::project_of(&state.pool, issue_id).await?;
 
     // Take the first file field.
     let field = multipart
@@ -107,10 +124,10 @@ pub async fn upload(
         &rel_path,
         written as i64,
         &mime_type,
-        user.id(),
+        uploaded_by,
     )
     .await?;
-    Ok(Json(row))
+    Ok(row)
 }
 
 pub async fn download(

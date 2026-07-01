@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE issues SET\n              title = $2, description = $3, type = $4, status = $5, priority = $6,\n              assignee_id = $7, board_position = $8, updated_at = now()\n           WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int2",
+        "Int2",
+        "Int2",
+        "Uuid",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7b09b8fe49936f9ccba2bff819b8791df7b24779ae15df82043aee37ea21abbf"
+}

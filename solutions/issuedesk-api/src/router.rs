@@ -31,6 +31,10 @@ pub fn build(state: AppState) -> Router {
             "/tickets/{slug}/comments/{commentId}",
             patch(handlers::tickets::comment_update).delete(handlers::tickets::comment_delete),
         )
+        .route(
+            "/tickets/{slug}/attachments",
+            get(handlers::tickets::attachment_list).post(handlers::tickets::attachment_upload),
+        )
         // projects
         .route("/projects", get(handlers::projects::list).post(handlers::projects::create))
         .route(
@@ -67,6 +71,7 @@ pub fn build(state: AppState) -> Router {
             "/issues/{id}/comments",
             get(handlers::comments::list).post(handlers::comments::create),
         )
+        .route("/issues/{id}/position", patch(handlers::issues::reorder))
         .route("/issues/{id}/labels", post(handlers::labels::attach))
         .route("/issues/{id}/labels/{labelId}", delete(handlers::labels::detach))
         .route(

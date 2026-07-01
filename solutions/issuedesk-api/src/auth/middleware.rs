@@ -20,8 +20,9 @@ use crate::{
 ///   `Sec-Fetch-Site` browser-lock.
 /// * **API key** (non-browser clients, e.g. relaying a ticket to Claude):
 ///   supplied via `X-API-Key` or `Authorization: Bearer idk_…`. API keys are
-///   read-only except for managing comments (`POST`/`PATCH`/`DELETE` on a
-///   `…/comments` path), and are exempt from the browser-lock, since curl/agents
+///   read-only except for managing comments and attachments (`POST`/`PATCH`/
+///   `DELETE` on a `…/comments` or `…/attachments` path), and are exempt from
+///   the browser-lock, since curl/agents
 ///   do not send `Sec-Fetch-Site`. A
 ///   key acts on behalf of the user who created it (its `created_by`), so a
 ///   comment it posts is attributed to that real user.
@@ -38,16 +39,20 @@ pub async fn require_auth(
 ) -> Result<Response, AppError> {
     // --- API key path (X-API-Key header, or a Bearer token shaped like a key) ---
     if let Some(secret) = extract_api_key(&req) {
-        // Read-only, with one family of exceptions: managing comments. A key may
-        // post (`POST …/comments`), edit (`PATCH …/comments/{id}`) and delete
-        // (`DELETE …/comments/{id}`) comments. Everything else must be a safe
-        // (GET) request.
+        // Read-only, with two families of exceptions: managing comments and
+        // attachments. A key may post/edit/delete comments (`…/comments`,
+        // `…/comments/{id}`) and upload/delete attachments (`…/attachments`,
+        // `…/attachments/{id}`) — so a relay client can comment back with a file.
+        // Everything else must be a safe (GET) request.
         let path = req.uri().path();
-        let is_comment_write = matches!(*req.method(), Method::POST | Method::PATCH | Method::DELETE)
-            && (path.ends_with("/comments") || path.contains("/comments/"));
-        if req.method() != Method::GET && !is_comment_write {
+        let is_relay_write = matches!(*req.method(), Method::POST | Method::PATCH | Method::DELETE)
+            && (path.ends_with("/comments")
+                || path.contains("/comments/")
+                || path.ends_with("/attachments")
+                || path.contains("/attachments/"));
+        if req.method() != Method::GET && !is_relay_write {
             return Err(AppError::Forbidden(
-                "API keys are read-only (except managing comments)".to_string(),
+                "API keys are read-only (except managing comments and attachments)".to_string(),
             ));
         }
         let key = db::api_keys::find_by_hash(&state.pool, &apikey::hash(&secret))

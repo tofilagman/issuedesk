@@ -4,6 +4,7 @@
   import { toasts } from '$lib/stores/toast.svelte';
   import RichEditor from '$lib/editor/RichEditor.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
+  import IssueFilters, { type IssueFilterState } from '$lib/components/IssueFilters.svelte';
   import { ticketAging } from '$lib/aging';
   import {
     STATUS_COLUMNS,
@@ -20,32 +21,45 @@
 
   const ctx = getContext<{ project: Project | null }>('project');
 
-  let issues = $state<IssueListItem[]>([]);
+  // How many cards to load per column at a time. The rest stay collapsed until
+  // the user scrolls the column (or clicks "Show more").
+  const PAGE = 10;
+
+  interface Column {
+    status: number;
+    label: string;
+    items: IssueListItem[];
+    total: number;
+    page: number; // last page loaded (0 = none yet)
+    loading: boolean;
+  }
+
+  let cols = $state<Column[]>(
+    STATUS_COLUMNS.map((c) => ({ status: c.value, label: c.label, items: [], total: 0, page: 0, loading: false }))
+  );
+
   let labels = $state<Label[]>([]);
   let members = $state<Member[]>([]);
-  let loading = $state(true);
-
-  // filters
-  let fAssignee = $state('');
-  let fType = $state('');
-  let fPriority = $state('');
-  let fLabel = $state('');
-  let fQ = $state('');
+  let filters = $state<IssueFilterState>({ q: '', type: '', priority: '', assignee: '', label: '' });
 
   // new issue
   let showNew = $state(false);
   let nf = $state({ title: '', type: 1, priority: 1, assigneeId: '', description: '' });
   let creating = $state(false);
-  // RichEditor instance, for flushing media pasted before the issue exists.
   let editorRef = $state<{
     getMarkdown(): string;
     hasPendingMedia(): boolean;
     uploadPending(issueId: string): Promise<void>;
   } | null>(null);
 
+  // drag state
   let dragId = $state<string | null>(null);
+  let dragFrom = $state<number | null>(null);
+  let overCol = $state<number | null>(null);
+  let overId = $state<string | null>(null);
+  let overHalf = $state<0 | 1>(0); // 0 = insert above the hovered card, 1 = below
 
-  // Drives card aging; refreshed periodically so badges stay current without a reload.
+  // Card aging clock.
   let now = $state(Date.now());
   onMount(() => {
     const t = setInterval(() => (now = Date.now()), 60_000);
@@ -54,24 +68,51 @@
 
   let projectId = $derived(ctx.project?.id ?? '');
 
-  async function load() {
-    if (!projectId) return;
-    loading = true;
+  function buildParams(col: Column): URLSearchParams {
+    const p = new URLSearchParams();
+    p.set('status', String(col.status));
+    p.set('sort', 'board');
+    p.set('page', String(col.page + 1));
+    p.set('pageSize', String(PAGE));
+    if (filters.assignee) p.set('assigneeId', filters.assignee);
+    if (filters.type) p.set('type', filters.type);
+    if (filters.priority) p.set('priority', filters.priority);
+    if (filters.label) p.set('labelId', filters.label);
+    if (filters.q) p.set('q', filters.q);
+    return p;
+  }
+
+  async function loadColumn(col: Column, reset = false) {
+    if (col.loading || !projectId) return;
+    if (reset) {
+      col.page = 0;
+      col.items = [];
+      col.total = 0;
+    } else if (col.page > 0 && col.items.length >= col.total) {
+      return; // fully loaded
+    }
+    col.loading = true;
     try {
-      const params = new URLSearchParams();
-      if (fAssignee) params.set('assigneeId', fAssignee);
-      if (fType) params.set('type', fType);
-      if (fPriority) params.set('priority', fPriority);
-      if (fLabel) params.set('labelId', fLabel);
-      if (fQ) params.set('q', fQ);
-      params.set('pageSize', '500');
-      const res = await api.get<IssueListResponse>(`/api/projects/${projectId}/issues?${params}`);
-      issues = res.items;
+      const res = await api.get<IssueListResponse>(`/api/projects/${projectId}/issues?${buildParams(col)}`);
+      col.items = [...col.items, ...res.items];
+      col.total = res.total;
+      col.page += 1;
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Failed to load issues');
     } finally {
-      loading = false;
+      col.loading = false;
     }
+  }
+
+  function reloadAll() {
+    for (const col of cols) void loadColumn(col, true);
+  }
+
+  // Debounced reload for filter changes (typing in the search box).
+  let debounce: ReturnType<typeof setTimeout>;
+  function onFiltersChange() {
+    clearTimeout(debounce);
+    debounce = setTimeout(reloadAll, 250);
   }
 
   async function loadMeta() {
@@ -82,37 +123,78 @@
     ]);
   }
 
-  // Reload whenever the project resolves or a filter changes.
+  let loadedFor = $state('');
   $effect(() => {
-    if (projectId) {
-      void load();
-    }
-  });
-  let metaLoaded = $state('');
-  $effect(() => {
-    if (projectId && metaLoaded !== projectId) {
-      metaLoaded = projectId;
+    if (projectId && loadedFor !== projectId) {
+      loadedFor = projectId;
       void loadMeta();
+      reloadAll();
     }
   });
 
-  function byStatus(s: number) {
-    return issues.filter((i) => i.status === s);
+  function onColScroll(e: Event, col: Column) {
+    const el = e.currentTarget as HTMLElement;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) void loadColumn(col);
   }
 
-  async function onDrop(status: number) {
-    const id = dragId;
+  // ---- drag & drop reordering ----
+  function onCardOver(e: DragEvent, status: number, id: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragId) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    overCol = status;
+    overId = id;
+    overHalf = e.clientY - rect.top < rect.height / 2 ? 0 : 1;
+  }
+
+  function clearDrag() {
     dragId = null;
-    if (!id) return;
-    const issue = issues.find((i) => i.id === id);
-    if (!issue || issue.status === status) return;
-    const prev = issue.status;
-    issue.status = status; // optimistic
+    dragFrom = null;
+    overCol = null;
+    overId = null;
+  }
+
+  async function commitDrop(status: number) {
+    const id = dragId;
+    const from = dragFrom;
+    const oId = overId;
+    const half = overHalf;
+    clearDrag();
+    if (!id || from === null) return;
+
+    const src = cols.find((c) => c.status === from)!;
+    const dst = cols.find((c) => c.status === status)!;
+    const moving = src.items.find((i) => i.id === id);
+    if (!moving) return;
+    if (oId === id) return; // dropped on itself
+
+    // Destination order without the moving card; find where it lands.
+    const dest = dst.items.filter((i) => i.id !== id);
+    let insertAt = dest.length;
+    if (oId) {
+      const j = dest.findIndex((i) => i.id === oId);
+      if (j >= 0) insertAt = half === 0 ? j : j + 1;
+    }
+    const beforeId = insertAt > 0 ? dest[insertAt - 1].id : null;
+    const afterId = insertAt < dest.length ? dest[insertAt].id : null;
+
+    // Optimistic reorder.
+    src.items = src.items.filter((i) => i.id !== id);
+    if (from !== status) {
+      src.total = Math.max(0, src.total - 1);
+      dst.total += 1;
+    }
+    moving.status = status;
+    dest.splice(insertAt, 0, moving);
+    dst.items = dest;
+
     try {
-      await api.patch(`/api/issues/${id}`, { status });
+      await api.patch(`/api/issues/${id}/position`, { status, beforeId, afterId });
     } catch (e) {
-      issue.status = prev;
-      toasts.error(e instanceof Error ? e.message : 'Move failed');
+      toasts.error(e instanceof Error ? e.message : 'Reorder failed');
+      await loadColumn(src, true);
+      if (dst !== src) await loadColumn(dst, true);
     }
   }
 
@@ -120,9 +202,6 @@
     e.preventDefault();
     creating = true;
     try {
-      // Images/videos pasted before the issue existed are buffered in the
-      // editor. Create the issue first, then upload that media against the new
-      // id and patch the description (which now holds blob: placeholders).
       const hasMedia = editorRef?.hasPendingMedia() ?? false;
       const created = await api.post<{ id: string }>(`/api/projects/${projectId}/issues`, {
         title: nf.title,
@@ -138,7 +217,7 @@
       toasts.success('Issue created');
       showNew = false;
       nf = { title: '', type: 1, priority: 1, assigneeId: '', description: '' };
-      await load();
+      await loadColumn(cols[0], true); // new issues land at the top of To Do
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Create failed');
     } finally {
@@ -147,50 +226,54 @@
   }
 </script>
 
-<!-- Filters -->
-<div class="mb-4 flex flex-wrap items-center gap-2">
-  <input class="input max-w-xs" placeholder="Search title…" bind:value={fQ} oninput={load} />
-  <select class="input max-w-[10rem]" bind:value={fType} onchange={load}>
-    <option value="">All types</option>
-    {#each TYPE_LABELS as t, i}<option value={i}>{t}</option>{/each}
-  </select>
-  <select class="input max-w-[10rem]" bind:value={fPriority} onchange={load}>
-    <option value="">All priorities</option>
-    {#each PRIORITY_LABELS as p, i}<option value={i}>{p}</option>{/each}
-  </select>
-  <select class="input max-w-[12rem]" bind:value={fAssignee} onchange={load}>
-    <option value="">All assignees</option>
-    {#each members as m}<option value={m.userId}>{m.displayName}</option>{/each}
-  </select>
-  <select class="input max-w-[10rem]" bind:value={fLabel} onchange={load}>
-    <option value="">All labels</option>
-    {#each labels as l}<option value={l.id}>{l.name}</option>{/each}
-  </select>
-  <button class="btn-primary ml-auto" onclick={() => (showNew = true)}>New issue</button>
-</div>
+<IssueFilters bind:filters {members} {labels} onchange={onFiltersChange}>
+  <button class="btn-primary" onclick={() => (showNew = true)}>New issue</button>
+</IssueFilters>
 
 <!-- Board -->
 <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-  {#each STATUS_COLUMNS as col (col.value)}
+  {#each cols as col (col.status)}
     <div
-      class="flex flex-col rounded-lg bg-slate-200/60 p-2"
+      class="flex min-h-[6rem] flex-col rounded-lg bg-slate-200/60 p-2"
       role="group"
       aria-label={col.label}
-      ondragover={(e) => e.preventDefault()}
-      ondrop={() => onDrop(col.value)}
+      ondragover={(e) => {
+        if (dragId) {
+          e.preventDefault();
+          overCol = col.status;
+          overId = null;
+        }
+      }}
+      ondrop={(e) => {
+        e.preventDefault();
+        void commitDrop(col.status);
+      }}
     >
       <div class="mb-2 flex items-center justify-between px-1 text-sm font-semibold text-slate-600">
         <span>{col.label}</span>
-        <span class="rounded-full bg-white px-2 text-xs text-slate-500">{byStatus(col.value).length}</span>
+        <span class="rounded-full bg-white px-2 text-xs text-slate-500">{col.total}</span>
       </div>
-      <div class="flex min-h-[3rem] flex-col gap-2">
-        {#each byStatus(col.value) as issue (issue.id)}
+
+      <div
+        class="flex max-h-[calc(100vh-16rem)] min-h-[2rem] flex-col gap-2 overflow-y-auto pr-0.5"
+        onscroll={(e) => onColScroll(e, col)}
+      >
+        {#each col.items as issue (issue.id)}
           {@const aging = ticketAging(issue.statusSince, issue.status, col.label, now)}
+          {@const showLine = overCol === col.status && overId === issue.id}
           <a
             href={`/p/${ctx.project?.key}/issue/${issue.number}`}
-            class="card block cursor-grab p-3 active:cursor-grabbing"
+            class="card block cursor-grab p-3 active:cursor-grabbing {dragId === issue.id ? 'opacity-40' : ''} {showLine &&
+            overHalf === 0
+              ? 'shadow-[inset_0_3px_0_0_theme(colors.indigo.500)]'
+              : ''} {showLine && overHalf === 1 ? 'shadow-[inset_0_-3px_0_0_theme(colors.indigo.500)]' : ''}"
             draggable="true"
-            ondragstart={() => (dragId = issue.id)}
+            ondragstart={() => {
+              dragId = issue.id;
+              dragFrom = col.status;
+            }}
+            ondragover={(e) => onCardOver(e, col.status, issue.id)}
+            ondragend={clearDrag}
           >
             <div class="flex items-center gap-2 text-xs text-slate-400">
               <span class={TYPE_META[issue.type].color} title={TYPE_META[issue.type].label}>
@@ -230,14 +313,22 @@
             {/if}
           </a>
         {/each}
+
+        {#if col.loading}
+          <p class="py-2 text-center text-xs text-slate-400">Loading…</p>
+        {:else if col.items.length < col.total}
+          <button
+            type="button"
+            class="rounded-md border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-500 hover:bg-white/60"
+            onclick={() => loadColumn(col)}
+          >
+            Show {col.total - col.items.length} more
+          </button>
+        {/if}
       </div>
     </div>
   {/each}
 </div>
-
-{#if loading}
-  <p class="mt-4 text-center text-slate-400">Loading…</p>
-{/if}
 
 <!-- New issue slide-over -->
 {#if showNew}

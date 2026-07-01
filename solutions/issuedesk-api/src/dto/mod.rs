@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::models::{ApiKeyDto, ActivityRow, CommentRow, UserDto};
+use crate::models::{ApiKeyDto, ActivityRow, AttachmentRow, CommentRow, UserDto};
 
 // ----------------------------- auth -----------------------------
 
@@ -91,6 +91,7 @@ pub struct TicketBundle {
     pub comments: Vec<CommentRow>,
     pub activity: Vec<ActivityRow>,
     pub links: Vec<IssueLink>,
+    pub attachments: Vec<AttachmentRow>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -176,6 +177,23 @@ pub struct IssueFilter {
     pub q: Option<String>,
     pub page: Option<i64>,
     pub page_size: Option<i64>,
+    /// `board` orders by manual board position (for the Kanban board); anything
+    /// else (or absent) orders by issue number descending (for the list).
+    pub sort: Option<String>,
+}
+
+/// Move an issue to a position within a status column (drag-drop reordering on
+/// the board). The new rank is the midpoint between the neighbors it lands
+/// between; either neighbor may be absent (dropped at an end of the column).
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ReorderRequest {
+    /// Target column (the issue may be moving between columns).
+    pub status: i16,
+    /// The issue that should end up directly ABOVE this one, if any.
+    pub before_id: Option<Uuid>,
+    /// The issue that should end up directly BELOW this one, if any.
+    pub after_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize)]
