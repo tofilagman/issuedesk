@@ -30,6 +30,7 @@ pub async fn create(
     Path(project_id): Path<Uuid>,
     Json(req): Json<CreateLabelRequest>,
 ) -> Result<Json<LabelRow>> {
+    user.require_not_customer()?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     req.validate()?;
     if !COLOR_RE.is_match(&req.color) {
@@ -44,6 +45,7 @@ pub async fn delete(
     user: AuthUser,
     Path(label_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    user.require_not_customer()?;
     let project_id = db::labels::project_of(&state.pool, label_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     db::labels::delete(&state.pool, label_id).await?;
@@ -56,6 +58,7 @@ pub async fn attach(
     Path(issue_id): Path<Uuid>,
     Json(req): Json<AttachLabelRequest>,
 ) -> Result<Json<serde_json::Value>> {
+    user.require_not_customer()?;
     let project_id = db::issues::project_of(&state.pool, issue_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     // Ensure the label belongs to the same project.
@@ -72,6 +75,7 @@ pub async fn detach(
     user: AuthUser,
     Path((issue_id, label_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
+    user.require_not_customer()?;
     let project_id = db::issues::project_of(&state.pool, issue_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     db::labels::detach(&state.pool, issue_id, label_id, user.id()).await?;

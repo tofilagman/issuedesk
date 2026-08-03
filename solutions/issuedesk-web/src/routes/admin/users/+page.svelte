@@ -4,7 +4,7 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
-  import type { User } from '$lib/types';
+  import { ROLE_LABELS, type User } from '$lib/types';
 
   let users = $state<User[]>([]);
   let loading = $state(true);
@@ -73,7 +73,7 @@
     <div><label class="mb-1 block text-xs text-slate-500" for="dn">Display name</label><input id="dn" class="input" bind:value={nf.displayName} required /></div>
     <div><label class="mb-1 block text-xs text-slate-500" for="pw">Password</label><input id="pw" class="input" type="password" bind:value={nf.password} required /></div>
     <div class="flex gap-2">
-      <select class="input" bind:value={nf.role}><option value={0}>Member</option><option value={1}>Admin</option></select>
+      <select class="input" bind:value={nf.role}>{#each ROLE_LABELS as label, i}<option value={i}>{label}</option>{/each}</select>
       <button class="btn-primary" disabled={busy}>Add</button>
     </div>
   </form>
@@ -97,7 +97,7 @@
           <td class="px-3 py-2 text-slate-600">{u.email}</td>
           <td class="px-3 py-2">
             <select class="input max-w-[8rem]" value={u.role} onchange={(e) => update(u, { role: Number((e.target as HTMLSelectElement).value) })}>
-              <option value={0}>Member</option><option value={1}>Admin</option>
+              {#each ROLE_LABELS as label, i}<option value={i}>{label}</option>{/each}
             </select>
           </td>
           <td class="px-3 py-2">

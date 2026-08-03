@@ -39,7 +39,8 @@ pub struct CreateUserRequest {
     pub display_name: String,
     #[validate(length(min = 6, message = "min 6 chars"))]
     pub password: String,
-    /// 0=member, 1=admin
+    /// 0=member, 1=admin, 2=customer
+    #[validate(range(min = 0, max = 2, message = "0-2"))]
     pub role: Option<i16>,
 }
 
@@ -50,6 +51,8 @@ pub struct UpdateUserRequest {
     pub display_name: Option<String>,
     #[validate(email(message = "must be a valid email"))]
     pub email: Option<String>,
+    /// 0=member, 1=admin, 2=customer
+    #[validate(range(min = 0, max = 2, message = "0-2"))]
     pub role: Option<i16>,
     pub is_active: Option<bool>,
 }
@@ -120,6 +123,30 @@ pub struct UpdateProjectRequest {
     #[validate(length(min = 1, max = 128, message = "1-128 chars"))]
     pub name: Option<String>,
     pub description: Option<String>,
+}
+
+// ----------------------------- groups -----------------------------
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateGroupRequest {
+    #[validate(length(min = 1, max = 64, message = "1-64 chars"))]
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateGroupRequest {
+    #[validate(length(min = 1, max = 64, message = "1-64 chars"))]
+    pub name: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddGroupMemberRequest {
+    pub user_id: Uuid,
 }
 
 // ----------------------------- members -----------------------------

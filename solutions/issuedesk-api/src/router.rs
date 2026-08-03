@@ -24,6 +24,20 @@ pub fn build(state: AppState) -> Router {
             get(handlers::api_keys::list).post(handlers::api_keys::create),
         )
         .route("/api-keys/{id}", delete(handlers::api_keys::delete))
+        // user groups (admin-managed; drive customer ticket visibility)
+        .route("/groups", get(handlers::groups::list).post(handlers::groups::create))
+        .route(
+            "/groups/{id}",
+            patch(handlers::groups::update).delete(handlers::groups::delete),
+        )
+        .route(
+            "/groups/{id}/members",
+            get(handlers::groups::members).post(handlers::groups::add_member),
+        )
+        .route(
+            "/groups/{id}/members/{userId}",
+            delete(handlers::groups::remove_member),
+        )
         // tickets (resolve by public KEY-number; JSON or ?format=md)
         .route("/tickets/{slug}", get(handlers::tickets::get))
         .route("/tickets/{slug}/comments", post(handlers::tickets::comment))

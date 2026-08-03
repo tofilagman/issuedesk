@@ -59,6 +59,7 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateProjectRequest>,
 ) -> Result<Json<ProjectRow>> {
+    user.require_not_customer()?;
     db::authorize_project(&state.pool, &user, id).await?;
     req.validate()?;
     let row = db::projects::update(&state.pool, id, req.name.as_deref(), req.description.as_deref())

@@ -18,8 +18,7 @@ pub async fn list(
     user: AuthUser,
     Path(issue_id): Path<Uuid>,
 ) -> Result<Json<Vec<IssueLink>>> {
-    let project_id = db::issues::project_of(&state.pool, issue_id).await?;
-    db::authorize_project(&state.pool, &user, project_id).await?;
+    db::authorize_issue(&state.pool, &user, issue_id).await?;
     let rows = db::links::list(&state.pool, issue_id).await?;
     Ok(Json(rows))
 }
@@ -30,6 +29,7 @@ pub async fn create(
     Path(issue_id): Path<Uuid>,
     Json(req): Json<CreateLinkRequest>,
 ) -> Result<Json<Vec<IssueLink>>> {
+    user.require_not_customer()?;
     let project_id = db::issues::project_of(&state.pool, issue_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     req.validate()?;
@@ -55,6 +55,7 @@ pub async fn delete(
     user: AuthUser,
     Path(link_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    user.require_not_customer()?;
     let (source, _target) = db::links::endpoints_of(&state.pool, link_id).await?;
     let project_id = db::issues::project_of(&state.pool, source).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;

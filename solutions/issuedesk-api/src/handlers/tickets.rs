@@ -180,7 +180,13 @@ async fn resolve(state: &AppState, user: &AuthUser, slug: &str) -> Result<Uuid> 
     let project = db::projects::find_by_key(&state.pool, &key.to_uppercase()).await?;
     db::authorize_project(&state.pool, user, project.id).await?;
 
-    db::issues::id_by_number(&state.pool, project.id, number).await
+    let issue_id = db::issues::id_by_number(&state.pool, project.id, number).await?;
+    // Customers only see their own tickets and their group-mates'; 404 (not
+    // 403) so they cannot probe ticket existence.
+    if user.is_customer() && !db::issues::visible_to_user(&state.pool, issue_id, user.id()).await? {
+        return Err(AppError::NotFound("issue not found".into()));
+    }
+    Ok(issue_id)
 }
 
 async fn load(state: &AppState, user: &AuthUser, slug: &str) -> Result<TicketBundle> {

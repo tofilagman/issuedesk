@@ -28,6 +28,20 @@ impl AuthUser {
             Err(AppError::Forbidden("admin role required".to_string()))
         }
     }
+    pub fn is_customer(&self) -> bool {
+        self.claims.role == Role::Customer.as_i16()
+    }
+    /// Returns `Forbidden` when the caller is a customer account (write
+    /// operations customers may not perform).
+    pub fn require_not_customer(&self) -> Result<(), AppError> {
+        if self.is_customer() {
+            Err(AppError::Forbidden(
+                "not permitted for customer accounts".to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl<S> FromRequestParts<S> for AuthUser

@@ -3,6 +3,7 @@ pub mod api_keys;
 pub mod attachments;
 pub mod auth;
 pub mod comments;
+pub mod groups;
 pub mod issues;
 pub mod labels;
 pub mod links;

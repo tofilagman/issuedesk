@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext, onMount } from 'svelte';
   import { api } from '$lib/api';
+  import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
   import RichEditor from '$lib/editor/RichEditor.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -51,6 +52,9 @@
     hasPendingMedia(): boolean;
     uploadPending(issueId: string): Promise<void>;
   } | null>(null);
+
+  // Customers can't move tickets — the board is read-only for them.
+  const canDrag = $derived(!auth.isCustomer);
 
   // drag state
   let dragId = $state<string | null>(null);
@@ -156,6 +160,7 @@
   }
 
   async function commitDrop(status: number) {
+    if (!canDrag) return;
     const id = dragId;
     const from = dragFrom;
     const oId = overId;
@@ -238,13 +243,14 @@
       role="group"
       aria-label={col.label}
       ondragover={(e) => {
-        if (dragId) {
+        if (canDrag && dragId) {
           e.preventDefault();
           overCol = col.status;
           overId = null;
         }
       }}
       ondrop={(e) => {
+        if (!canDrag) return;
         e.preventDefault();
         void commitDrop(col.status);
       }}
@@ -263,16 +269,17 @@
           {@const showLine = overCol === col.status && overId === issue.id}
           <a
             href={`/p/${ctx.project?.key}/issue/${issue.number}`}
-            class="card block cursor-grab p-3 active:cursor-grabbing {dragId === issue.id ? 'opacity-40' : ''} {showLine &&
+            class="card block p-3 {canDrag ? 'cursor-grab active:cursor-grabbing' : ''} {dragId === issue.id ? 'opacity-40' : ''} {showLine &&
             overHalf === 0
               ? 'shadow-[inset_0_3px_0_0_theme(colors.indigo.500)]'
               : ''} {showLine && overHalf === 1 ? 'shadow-[inset_0_-3px_0_0_theme(colors.indigo.500)]' : ''}"
-            draggable="true"
+            draggable={canDrag}
             ondragstart={() => {
+              if (!canDrag) return;
               dragId = issue.id;
               dragFrom = col.status;
             }}
-            ondragover={(e) => onCardOver(e, col.status, issue.id)}
+            ondragover={(e) => canDrag && onCardOver(e, col.status, issue.id)}
             ondragend={clearDrag}
           >
             <div class="flex items-center gap-2 text-xs text-slate-400">
@@ -354,13 +361,15 @@
           </select>
         </div>
       </div>
-      <div>
-        <label class="mb-1 block text-sm font-medium" for="as">Assignee</label>
-        <select id="as" class="input" bind:value={nf.assigneeId}>
-          <option value="">Unassigned</option>
-          {#each members as m}<option value={m.userId}>{m.displayName}</option>{/each}
-        </select>
-      </div>
+      {#if !auth.isCustomer}
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="as">Assignee</label>
+          <select id="as" class="input" bind:value={nf.assigneeId}>
+            <option value="">Unassigned</option>
+            {#each members as m}<option value={m.userId}>{m.displayName}</option>{/each}
+          </select>
+        </div>
+      {/if}
       <div>
         <span class="mb-1 block text-sm font-medium">Description</span>
         <RichEditor

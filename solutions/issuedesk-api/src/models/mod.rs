@@ -164,3 +164,18 @@ pub struct MemberRow {
     #[serde(with = "time::serde::rfc3339")]
     pub added_at: OffsetDateTime,
 }
+
+/// User group: customers see each other's tickets when they share a group.
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupRow {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_by: Uuid,
+    pub member_count: i64,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}

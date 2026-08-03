@@ -8,6 +8,10 @@ class AuthState {
   get isAdmin() {
     return this.user?.role === 1;
   }
+
+  get isCustomer() {
+    return this.user?.role === 2;
+  }
 }
 
 export const auth = new AuthState();

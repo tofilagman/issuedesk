@@ -30,6 +30,19 @@
     }
   });
 
+  // Customers have no business on admin, settings, or dashboard pages — the
+  // server 403s them anyway; this just keeps the UI coherent.
+  $effect(() => {
+    const id = page.route.id ?? '';
+    if (
+      auth.ready &&
+      auth.isCustomer &&
+      (id.startsWith('/admin') || id.includes('/settings') || id.includes('/dashboard'))
+    ) {
+      goto('/');
+    }
+  });
+
   function logout() {
     clearToken();
     auth.user = null;
@@ -49,9 +62,12 @@
         </a>
         <nav class="flex items-center gap-1 text-sm">
           <a class="btn-ghost" href="/">Projects</a>
-          <a class="btn-ghost" href="/dashboard">Dashboard</a>
+          {#if !auth.isCustomer}
+            <a class="btn-ghost" href="/dashboard">Dashboard</a>
+          {/if}
           {#if auth.isAdmin}
             <a class="btn-ghost" href="/admin/users">Users</a>
+            <a class="btn-ghost" href="/admin/groups">Groups</a>
             <a class="btn-ghost" href="/admin/keys">API Keys</a>
           {/if}
         </nav>

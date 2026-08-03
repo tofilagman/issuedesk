@@ -78,6 +78,11 @@
 
   let projectId = $derived(ctx.project?.id ?? '');
 
+  // Customers can only edit the title/description of tickets they reported;
+  // everything else (status, priority, labels, links, delete…) is read-only.
+  const isCustomer = $derived(auth.isCustomer);
+  const canEditContent = $derived(!isCustomer || issue?.reporterId === auth.user?.id);
+
   $effect(() => {
     const k = `${projectId}:${number}`;
     if (projectId && number && k !== loadedKey) {
@@ -381,7 +386,9 @@
       <div class="card p-5">
         <div class="flex items-center gap-2 text-sm text-slate-400">
           <span class="font-mono">{issue.key}</span>
-          <button class="btn-danger ml-auto !py-1 !text-xs" onclick={deleteIssue}>Delete</button>
+          {#if !isCustomer}
+            <button class="btn-danger ml-auto !py-1 !text-xs" onclick={deleteIssue}>Delete</button>
+          {/if}
         </div>
         {#if editingTitle}
           <!-- svelte-ignore a11y_autofocus -->
@@ -400,10 +407,12 @@
             class="group mt-1 flex items-start gap-2 text-2xl font-semibold"
           >
             <span>{issue.title}</span>
-            <button
-              class="btn-ghost mt-1 !py-0.5 !text-xs opacity-0 transition group-hover:opacity-100"
-              onclick={startEditTitle}>Edit</button
-            >
+            {#if canEditContent}
+              <button
+                class="btn-ghost mt-1 !py-0.5 !text-xs opacity-0 transition group-hover:opacity-100"
+                onclick={startEditTitle}>Edit</button
+              >
+            {/if}
           </h1>
         {/if}
 
@@ -424,7 +433,7 @@
               </svg>
               <h3 class="text-xs font-semibold text-slate-500">Description</h3>
             </button>
-            {#if !editingDesc}
+            {#if !editingDesc && canEditContent}
               <button class="btn-ghost shrink-0 !py-0.5 !text-xs" onclick={startEditDesc}>Edit</button>
             {/if}
           </div>
@@ -454,7 +463,9 @@
       <!-- Linked issues -->
       <CollapsibleCard title="Linked issues" storageKey="links" count={links.length}>
         {#snippet actions()}
-          <button class="btn-ghost cursor-pointer text-xs" onclick={() => (showLink = true)}>+ Link issue</button>
+          {#if !isCustomer}
+            <button class="btn-ghost cursor-pointer text-xs" onclick={() => (showLink = true)}>+ Link issue</button>
+          {/if}
         {/snippet}
         {#if links.length === 0}
           <p class="text-xs text-slate-400">No linked issues.</p>
@@ -475,7 +486,9 @@
                         <span class="font-mono text-xs text-slate-400">{lk.key}</span>
                         <span class="truncate text-slate-700">{lk.title}</span>
                       </a>
-                      <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" title="Remove link" onclick={() => removeLink(lk)}>✕</button>
+                      {#if !isCustomer}
+                        <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" title="Remove link" onclick={() => removeLink(lk)}>✕</button>
+                      {/if}
                     </li>
                   {/each}
                 </ul>
@@ -502,7 +515,9 @@
                 <AttachmentThumb att={a} />
                 <button class="truncate text-indigo-600 hover:underline" onclick={() => download(a)}>{a.filename}</button>
                 <span class="shrink-0 text-xs text-slate-400">{fmtSize(a.sizeBytes)}</span>
-                <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" onclick={() => deleteAttachment(a)}>✕</button>
+                {#if !isCustomer}
+                  <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" onclick={() => deleteAttachment(a)}>✕</button>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -591,28 +606,44 @@
         <div class="space-y-3 text-sm">
         <div>
           <span class="mb-1 block text-xs font-medium text-slate-500">Status</span>
-          <select class="input" value={issue.status} onchange={(e) => patch({ status: Number((e.target as HTMLSelectElement).value) })}>
-            {#each STATUS_LABELS as s, i}<option value={i}>{s}</option>{/each}
-          </select>
+          {#if isCustomer}
+            <p class="text-slate-700">{STATUS_LABELS[issue.status]}</p>
+          {:else}
+            <select class="input" value={issue.status} onchange={(e) => patch({ status: Number((e.target as HTMLSelectElement).value) })}>
+              {#each STATUS_LABELS as s, i}<option value={i}>{s}</option>{/each}
+            </select>
+          {/if}
         </div>
         <div>
           <span class="mb-1 block text-xs font-medium text-slate-500">Assignee</span>
-          <select class="input" value={issue.assigneeId ?? ''} onchange={(e) => patch({ assigneeId: (e.target as HTMLSelectElement).value || null })}>
-            <option value="">Unassigned</option>
-            {#each members as m}<option value={m.userId}>{m.displayName}</option>{/each}
-          </select>
+          {#if isCustomer}
+            <p class="text-slate-700">{issue.assigneeName ?? 'Unassigned'}</p>
+          {:else}
+            <select class="input" value={issue.assigneeId ?? ''} onchange={(e) => patch({ assigneeId: (e.target as HTMLSelectElement).value || null })}>
+              <option value="">Unassigned</option>
+              {#each members as m}<option value={m.userId}>{m.displayName}</option>{/each}
+            </select>
+          {/if}
         </div>
         <div>
           <span class="mb-1 block text-xs font-medium text-slate-500">Priority</span>
-          <select class="input" value={issue.priority} onchange={(e) => patch({ priority: Number((e.target as HTMLSelectElement).value) })}>
-            {#each PRIORITY_LABELS as p, i}<option value={i}>{p}</option>{/each}
-          </select>
+          {#if isCustomer}
+            <p class="text-slate-700">{PRIORITY_LABELS[issue.priority]}</p>
+          {:else}
+            <select class="input" value={issue.priority} onchange={(e) => patch({ priority: Number((e.target as HTMLSelectElement).value) })}>
+              {#each PRIORITY_LABELS as p, i}<option value={i}>{p}</option>{/each}
+            </select>
+          {/if}
         </div>
         <div>
           <span class="mb-1 block text-xs font-medium text-slate-500">Type</span>
-          <select class="input" value={issue.type} onchange={(e) => patch({ type: Number((e.target as HTMLSelectElement).value) })}>
-            {#each TYPE_LABELS as t, i}<option value={i}>{t}</option>{/each}
-          </select>
+          {#if isCustomer}
+            <p class="text-slate-700">{TYPE_LABELS[issue.type]}</p>
+          {:else}
+            <select class="input" value={issue.type} onchange={(e) => patch({ type: Number((e.target as HTMLSelectElement).value) })}>
+              {#each TYPE_LABELS as t, i}<option value={i}>{t}</option>{/each}
+            </select>
+          {/if}
         </div>
         <div class="border-t border-slate-100 pt-2 text-xs text-slate-500">
           <div class="flex items-center gap-2">
@@ -626,7 +657,17 @@
 
       <!-- Labels -->
       <CollapsibleCard title="Labels" storageKey="labels">
-        {#if labels.length === 0}
+        {#if isCustomer}
+          {#if issue.labels.length === 0}
+            <p class="text-xs text-slate-400">No labels.</p>
+          {:else}
+            <div class="flex flex-wrap gap-2">
+              {#each issue.labels as l (l.id)}
+                <span class="label-chip" style={`background-color:${l.color}`}>{l.name}</span>
+              {/each}
+            </div>
+          {/if}
+        {:else if labels.length === 0}
           <p class="text-xs text-slate-400">No labels defined for this project yet.</p>
         {:else}
           <div class="flex flex-wrap gap-2">

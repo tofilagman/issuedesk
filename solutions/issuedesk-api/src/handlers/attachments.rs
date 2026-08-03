@@ -24,8 +24,7 @@ pub async fn list(
     user: AuthUser,
     Path(issue_id): Path<Uuid>,
 ) -> Result<Json<Vec<AttachmentRow>>> {
-    let project_id = db::issues::project_of(&state.pool, issue_id).await?;
-    db::authorize_project(&state.pool, &user, project_id).await?;
+    db::authorize_issue(&state.pool, &user, issue_id).await?;
     let rows = db::attachments::list(&state.pool, issue_id).await?;
     Ok(Json(rows))
 }
@@ -36,8 +35,7 @@ pub async fn upload(
     Path(issue_id): Path<Uuid>,
     multipart: Multipart,
 ) -> Result<Json<AttachmentRow>> {
-    let project_id = db::issues::project_of(&state.pool, issue_id).await?;
-    db::authorize_project(&state.pool, &user, project_id).await?;
+    db::authorize_issue(&state.pool, &user, issue_id).await?;
     let row = store_upload(&state, issue_id, user.id(), multipart).await?;
     Ok(Json(row))
 }
@@ -136,8 +134,7 @@ pub async fn download(
     Path(attachment_id): Path<Uuid>,
 ) -> Result<Response> {
     let att = db::attachments::get(&state.pool, attachment_id).await?;
-    let project_id = db::issues::project_of(&state.pool, att.issue_id).await?;
-    db::authorize_project(&state.pool, &user, project_id).await?;
+    db::authorize_issue(&state.pool, &user, att.issue_id).await?;
 
     let abs_path = PathBuf::from(&state.config.upload_dir).join(&att.stored_path);
     let file = tokio::fs::File::open(&abs_path)
@@ -164,6 +161,7 @@ pub async fn delete(
     user: AuthUser,
     Path(attachment_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    user.require_not_customer()?;
     let att = db::attachments::get(&state.pool, attachment_id).await?;
     let project_id = db::issues::project_of(&state.pool, att.issue_id).await?;
     db::authorize_project(&state.pool, &user, project_id).await?;

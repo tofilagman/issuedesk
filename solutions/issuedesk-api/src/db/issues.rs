@@ -151,14 +151,49 @@ pub async fn project_of(pool: &PgPool, issue_id: Uuid) -> Result<Uuid> {
     Ok(row.project_id)
 }
 
+/// Project and reporter in one round trip (for customer ownership checks).
+pub async fn project_and_reporter(pool: &PgPool, issue_id: Uuid) -> Result<(Uuid, Uuid)> {
+    let row = sqlx::query!(
+        "SELECT project_id, reporter_id FROM issues WHERE id = $1",
+        issue_id
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("issue not found".into()))?;
+    Ok((row.project_id, row.reporter_id))
+}
+
+/// Customer visibility rule for a single issue: the user reported it, or the
+/// reporter shares at least one group with them.
+pub async fn visible_to_user(pool: &PgPool, issue_id: Uuid, user_id: Uuid) -> Result<bool> {
+    let visible = sqlx::query_scalar!(
+        r#"SELECT EXISTS(
+               SELECT 1 FROM issues i
+               WHERE i.id = $1
+                 AND (i.reporter_id = $2
+                      OR EXISTS (SELECT 1 FROM group_members g1
+                                 JOIN group_members g2 ON g2.group_id = g1.group_id
+                                 WHERE g1.user_id = $2 AND g2.user_id = i.reporter_id))
+           ) as "visible!""#,
+        issue_id,
+        user_id
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(visible)
+}
+
 /// Filtered, paginated issue list for a project. Backs both the table and the
 /// Kanban board. Optional filters use the `($n IS NULL OR ...)` idiom so the
-/// query stays compile-time checked.
+/// query stays compile-time checked. `visible_to` is Some(user) for customer
+/// callers: rows are then limited to issues reported by that user or by a
+/// group-mate (shared `group_members` row).
 pub async fn list(
     pool: &PgPool,
     project_id: Uuid,
     project_key: &str,
     f: &IssueFilter,
+    visible_to: Option<Uuid>,
 ) -> Result<IssueListResponse> {
     let page = f.page.unwrap_or(1).max(1);
     let page_size = f.page_size.unwrap_or(200).clamp(1, 500);
@@ -190,6 +225,10 @@ pub async fn list(
              AND ($7::uuid     IS NULL OR EXISTS(
                     SELECT 1 FROM issue_labels il
                     WHERE il.issue_id = i.id AND il.label_id = $7))
+             AND ($12::uuid    IS NULL OR i.reporter_id = $12
+                    OR EXISTS (SELECT 1 FROM group_members g1
+                               JOIN group_members g2 ON g2.group_id = g1.group_id
+                               WHERE g1.user_id = $12 AND g2.user_id = i.reporter_id))
            ORDER BY (CASE WHEN $11 THEN i.board_position ELSE 0 END), i.number DESC
            LIMIT $8 OFFSET $9"#,
         project_id,
@@ -202,7 +241,8 @@ pub async fn list(
         page_size,
         offset,
         project_key,
-        sort_board
+        sort_board,
+        visible_to
     )
     .fetch_all(pool)
     .await?;
@@ -219,7 +259,11 @@ pub async fn list(
                     OR ($8 || '-' || i.number::text) ILIKE $6)
              AND ($7::uuid     IS NULL OR EXISTS(
                     SELECT 1 FROM issue_labels il
-                    WHERE il.issue_id = i.id AND il.label_id = $7))"#,
+                    WHERE il.issue_id = i.id AND il.label_id = $7))
+             AND ($9::uuid     IS NULL OR i.reporter_id = $9
+                    OR EXISTS (SELECT 1 FROM group_members g1
+                               JOIN group_members g2 ON g2.group_id = g1.group_id
+                               WHERE g1.user_id = $9 AND g2.user_id = i.reporter_id))"#,
         project_id,
         f.status,
         f.assignee_id,
@@ -227,7 +271,8 @@ pub async fn list(
         f.priority,
         q_like,
         f.label_id,
-        project_key
+        project_key,
+        visible_to
     )
     .fetch_one(pool)
     .await?

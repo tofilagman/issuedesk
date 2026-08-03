@@ -11,8 +11,7 @@ pub async fn list(
     user: AuthUser,
     Path(issue_id): Path<Uuid>,
 ) -> Result<Json<Vec<ActivityRow>>> {
-    let project_id = db::issues::project_of(&state.pool, issue_id).await?;
-    db::authorize_project(&state.pool, &user, project_id).await?;
+    db::authorize_issue(&state.pool, &user, issue_id).await?;
     let rows = db::activity::list(&state.pool, issue_id).await?;
     Ok(Json(rows))
 }

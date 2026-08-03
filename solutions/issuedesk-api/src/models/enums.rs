@@ -26,7 +26,7 @@ macro_rules! int_enum {
     };
 }
 
-int_enum!(Role { Member = 0, Admin = 1 });
+int_enum!(Role { Member = 0, Admin = 1, Customer = 2 });
 
 int_enum!(IssueType { Bug = 0, Task = 1, Story = 2, Epic = 3 });
 

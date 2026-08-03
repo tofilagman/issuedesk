@@ -2,6 +2,7 @@
   import { setContext } from 'svelte';
   import { page } from '$app/state';
   import { getProjectByKey } from '$lib/projects';
+  import { auth } from '$lib/stores/auth.svelte';
   import { toasts } from '$lib/stores/toast.svelte';
   import type { Project } from '$lib/types';
 
@@ -57,18 +58,20 @@
           ? 'border-indigo-600 font-medium text-indigo-700'
           : 'border-transparent text-slate-500'}">List</a
       >
-      <a
-        href={`/p/${ctx.project.key}/dashboard`}
-        class="border-b-2 px-3 py-2 {tab === 'dashboard'
-          ? 'border-indigo-600 font-medium text-indigo-700'
-          : 'border-transparent text-slate-500'}">Dashboard</a
-      >
-      <a
-        href={`/p/${ctx.project.key}/settings`}
-        class="border-b-2 px-3 py-2 {tab === 'settings'
-          ? 'border-indigo-600 font-medium text-indigo-700'
-          : 'border-transparent text-slate-500'}">Settings</a
-      >
+      {#if !auth.isCustomer}
+        <a
+          href={`/p/${ctx.project.key}/dashboard`}
+          class="border-b-2 px-3 py-2 {tab === 'dashboard'
+            ? 'border-indigo-600 font-medium text-indigo-700'
+            : 'border-transparent text-slate-500'}">Dashboard</a
+        >
+        <a
+          href={`/p/${ctx.project.key}/settings`}
+          class="border-b-2 px-3 py-2 {tab === 'settings'
+            ? 'border-indigo-600 font-medium text-indigo-700'
+            : 'border-transparent text-slate-500'}">Settings</a
+        >
+      {/if}
     </nav>
   </div>
   {@render children()}

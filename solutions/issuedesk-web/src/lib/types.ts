@@ -3,9 +3,19 @@ export interface User {
   userName: string;
   email: string;
   displayName: string;
-  role: number; // 0 member, 1 admin
+  role: number; // 0 member, 1 admin, 2 customer
   isActive: boolean;
   createdAt: string;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  description?: string | null;
+  createdBy: string;
+  memberCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ApiKey {
@@ -138,6 +148,7 @@ export interface Activity {
 }
 
 // ---- enum labels ----
+export const ROLE_LABELS = ['Member', 'Admin', 'Customer'];
 export const TYPE_LABELS = ['Bug', 'Task', 'Story', 'Epic'];
 export const STATUS_LABELS = ['To Do', 'In Progress', 'Implemented', 'In Review', 'Done'];
 export const PRIORITY_LABELS = ['Low', 'Medium', 'High', 'Urgent'];

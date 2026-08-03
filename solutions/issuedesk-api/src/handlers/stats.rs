@@ -17,6 +17,8 @@ pub async fn project(
     user: AuthUser,
     Path(project_id): Path<Uuid>,
 ) -> Result<Json<ProjectStats>> {
+    // Stats aggregate over all issues; customers only see a filtered subset.
+    user.require_not_customer()?;
     db::authorize_project(&state.pool, &user, project_id).await?;
     let stats = db::stats::project_stats(&state.pool, project_id).await?;
     Ok(Json(stats))
@@ -26,6 +28,7 @@ pub async fn system(
     State(state): State<AppState>,
     user: AuthUser,
 ) -> Result<Json<SystemStats>> {
+    user.require_not_customer()?;
     // Scope to the projects this user can see (admins see all).
     let projects = db::projects::list_visible(&state.pool, user.id(), user.is_admin()).await?;
     let ids: Vec<Uuid> = projects.iter().map(|p| p.id).collect();
