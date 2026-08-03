@@ -218,6 +218,7 @@ pub async fn list_groups(pool: &PgPool, project_id: Uuid) -> Result<Vec<GroupRow
 }
 
 pub async fn add_group(pool: &PgPool, project_id: Uuid, group_id: Uuid) -> Result<()> {
+    let mut tx = pool.begin().await?;
     sqlx::query!(
         r#"INSERT INTO project_groups (project_id, group_id)
            VALUES ($1, $2)
@@ -225,8 +226,24 @@ pub async fn add_group(pool: &PgPool, project_id: Uuid, group_id: Uuid) -> Resul
         project_id,
         group_id
     )
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    // The group now grants access, so drop redundant direct memberships for
+    // customers in it. Regular members keep their row (project role matters).
+    sqlx::query!(
+        r#"DELETE FROM project_members pm
+           USING group_members gm, users u
+           WHERE pm.project_id = $1
+             AND gm.group_id = $2 AND gm.user_id = pm.user_id
+             AND u.id = pm.user_id AND u.role = 2"#,
+        project_id,
+        group_id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
     Ok(())
 }
 

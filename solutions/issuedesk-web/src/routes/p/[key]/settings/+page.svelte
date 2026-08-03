@@ -74,6 +74,8 @@
     try {
       groups = await api.post<Group[]>(`/api/projects/${projectId}/groups`, { groupId: addGroupId });
       addGroupId = '';
+      // Linking prunes redundant direct customer memberships server-side.
+      members = await api.get<Member[]>(`/api/projects/${projectId}/members`);
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Add failed');
     }
