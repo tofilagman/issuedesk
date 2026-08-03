@@ -229,14 +229,14 @@ pub async fn add_group(pool: &PgPool, project_id: Uuid, group_id: Uuid) -> Resul
     .execute(&mut *tx)
     .await?;
 
-    // The group now grants access, so drop redundant direct memberships for
-    // customers in it. Regular members keep their row (project role matters).
+    // The group now grants access, so drop the redundant direct memberships
+    // of everyone in it. (A pruned lead loses only the badge — access and
+    // powers still come from their global role plus the group link.)
     sqlx::query!(
         r#"DELETE FROM project_members pm
-           USING group_members gm, users u
+           USING group_members gm
            WHERE pm.project_id = $1
-             AND gm.group_id = $2 AND gm.user_id = pm.user_id
-             AND u.id = pm.user_id AND u.role = 2"#,
+             AND gm.group_id = $2 AND gm.user_id = pm.user_id"#,
         project_id,
         group_id
     )
