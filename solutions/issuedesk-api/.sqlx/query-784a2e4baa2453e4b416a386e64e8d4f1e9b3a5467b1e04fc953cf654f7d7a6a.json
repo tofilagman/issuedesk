@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id, g.name, g.description, g.created_by,\n                  (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) as \"member_count!\",\n                  g.created_at, g.updated_at\n           FROM project_groups pg\n           JOIN groups g ON g.id = pg.group_id\n           WHERE pg.project_id = $1\n           ORDER BY g.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "member_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "784a2e4baa2453e4b416a386e64e8d4f1e9b3a5467b1e04fc953cf654f7d7a6a"
+}

@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::{
     error::{AppError, Result},
-    models::{MemberRow, ProjectRow},
+    models::{GroupRow, MemberRow, ProjectRow},
 };
 
 pub async fn create(
@@ -69,7 +69,7 @@ pub async fn find_by_key(pool: &PgPool, key: &str) -> Result<ProjectRow> {
 }
 
 /// Projects visible to a user: all of them for admins, otherwise the ones they
-/// are a member of.
+/// are a member of — directly, or through a group linked to the project.
 pub async fn list_visible(pool: &PgPool, user_id: Uuid, is_admin: bool) -> Result<Vec<ProjectRow>> {
     let rows = if is_admin {
         sqlx::query_as!(
@@ -85,8 +85,11 @@ pub async fn list_visible(pool: &PgPool, user_id: Uuid, is_admin: bool) -> Resul
             r#"SELECT p.id, p.key, p.name, p.description, p.issue_seq, p.created_by,
                       p.created_at, p.updated_at
                FROM projects p
-               JOIN project_members m ON m.project_id = p.id
-               WHERE m.user_id = $1
+               WHERE EXISTS (SELECT 1 FROM project_members m
+                             WHERE m.project_id = p.id AND m.user_id = $1)
+                  OR EXISTS (SELECT 1 FROM project_groups pg
+                             JOIN group_members gm ON gm.group_id = pg.group_id
+                             WHERE pg.project_id = p.id AND gm.user_id = $1)
                ORDER BY p.key"#,
             user_id
         )
@@ -129,12 +132,17 @@ pub async fn delete(pool: &PgPool, id: Uuid) -> Result<()> {
     Ok(())
 }
 
-/// True if the user is a member of the project.
+/// True if the user is a member of the project — directly, or through a group
+/// linked to it via project_groups.
 pub async fn is_member(pool: &PgPool, project_id: Uuid, user_id: Uuid) -> Result<bool> {
     let row = sqlx::query!(
-        r#"SELECT EXISTS(
+        r#"SELECT (EXISTS(
               SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
-           ) as "exists!""#,
+           ) OR EXISTS(
+              SELECT 1 FROM project_groups pg
+              JOIN group_members gm ON gm.group_id = pg.group_id
+              WHERE pg.project_id = $1 AND gm.user_id = $2
+           )) as "exists!""#,
         project_id,
         user_id
     )
@@ -185,6 +193,53 @@ pub async fn remove_member(pool: &PgPool, project_id: Uuid, user_id: Uuid) -> Re
     .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::NotFound("membership not found".into()));
+    }
+    Ok(())
+}
+
+// ----------------------------- linked groups -----------------------------
+
+/// Groups linked to a project; their members all get project access.
+pub async fn list_groups(pool: &PgPool, project_id: Uuid) -> Result<Vec<GroupRow>> {
+    let rows = sqlx::query_as!(
+        GroupRow,
+        r#"SELECT g.id, g.name, g.description, g.created_by,
+                  (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) as "member_count!",
+                  g.created_at, g.updated_at
+           FROM project_groups pg
+           JOIN groups g ON g.id = pg.group_id
+           WHERE pg.project_id = $1
+           ORDER BY g.name"#,
+        project_id
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
+pub async fn add_group(pool: &PgPool, project_id: Uuid, group_id: Uuid) -> Result<()> {
+    sqlx::query!(
+        r#"INSERT INTO project_groups (project_id, group_id)
+           VALUES ($1, $2)
+           ON CONFLICT (project_id, group_id) DO NOTHING"#,
+        project_id,
+        group_id
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn remove_group(pool: &PgPool, project_id: Uuid, group_id: Uuid) -> Result<()> {
+    let res = sqlx::query!(
+        "DELETE FROM project_groups WHERE project_id = $1 AND group_id = $2",
+        project_id,
+        group_id
+    )
+    .execute(pool)
+    .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("group link not found".into()));
     }
     Ok(())
 }

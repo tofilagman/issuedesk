@@ -63,6 +63,15 @@ pub fn build(state: AppState) -> Router {
             get(handlers::members::list).post(handlers::members::add),
         )
         .route("/projects/{id}/members/{userId}", delete(handlers::members::remove))
+        // groups linked to a project (their members all get project access)
+        .route(
+            "/projects/{id}/groups",
+            get(handlers::projects::list_groups).post(handlers::projects::add_group),
+        )
+        .route(
+            "/projects/{id}/groups/{groupId}",
+            delete(handlers::projects::remove_group),
+        )
         // issues (project-scoped)
         .route(
             "/projects/{id}/issues",

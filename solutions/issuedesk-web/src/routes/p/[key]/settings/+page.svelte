@@ -5,17 +5,20 @@
   import { toasts } from '$lib/stores/toast.svelte';
   import { confirmDialog } from '$lib/stores/confirm.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
-  import type { Label, Member, Project, User } from '$lib/types';
+  import type { Group, Label, Member, Project, User } from '$lib/types';
 
   const ctx = getContext<{ project: Project | null }>('project');
   let projectId = $derived(ctx.project?.id ?? '');
 
   let members = $state<Member[]>([]);
   let labels = $state<Label[]>([]);
+  let groups = $state<Group[]>([]);
   let allUsers = $state<User[]>([]);
+  let allGroups = $state<Group[]>([]);
   let loadedFor = $state('');
 
   let addUserId = $state('');
+  let addGroupId = $state('');
   let nl = $state({ name: '', color: '#3b82f6' });
 
   $effect(() => {
@@ -27,12 +30,18 @@
 
   async function load() {
     try {
-      const tasks: [Promise<Member[]>, Promise<Label[]>] = [
+      const tasks: [Promise<Member[]>, Promise<Label[]>, Promise<Group[]>] = [
         api.get<Member[]>(`/api/projects/${projectId}/members`),
-        api.get<Label[]>(`/api/projects/${projectId}/labels`)
+        api.get<Label[]>(`/api/projects/${projectId}/labels`),
+        api.get<Group[]>(`/api/projects/${projectId}/groups`)
       ];
-      [members, labels] = await Promise.all(tasks);
-      if (auth.isAdmin) allUsers = await api.get<User[]>('/api/users');
+      [members, labels, groups] = await Promise.all(tasks);
+      if (auth.isAdmin) {
+        [allUsers, allGroups] = await Promise.all([
+          api.get<User[]>('/api/users'),
+          api.get<Group[]>('/api/groups')
+        ]);
+      }
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Failed to load settings');
     }
@@ -54,6 +63,27 @@
     try {
       await api.del(`/api/projects/${projectId}/members/${m.userId}`);
       members = members.filter((x) => x.userId !== m.userId);
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Remove failed');
+    }
+  }
+
+  async function addGroup(e: Event) {
+    e.preventDefault();
+    if (!addGroupId) return;
+    try {
+      groups = await api.post<Group[]>(`/api/projects/${projectId}/groups`, { groupId: addGroupId });
+      addGroupId = '';
+    } catch (e) {
+      toasts.error(e instanceof Error ? e.message : 'Add failed');
+    }
+  }
+
+  async function removeGroup(g: Group) {
+    if (!(await confirmDialog.ask({ title: 'Remove group', message: `Remove “${g.name}” from this project? Its ${g.memberCount} member(s) lose access unless they are direct members.`, confirmText: 'Remove', danger: true }))) return;
+    try {
+      await api.del(`/api/projects/${projectId}/groups/${g.id}`);
+      groups = groups.filter((x) => x.id !== g.id);
     } catch (e) {
       toasts.error(e instanceof Error ? e.message : 'Remove failed');
     }
@@ -82,6 +112,8 @@
 
   const memberIds = $derived(new Set(members.map((m) => m.userId)));
   const candidates = $derived(allUsers.filter((u) => !memberIds.has(u.id)));
+  const linkedGroupIds = $derived(new Set(groups.map((g) => g.id)));
+  const groupCandidates = $derived(allGroups.filter((g) => !linkedGroupIds.has(g.id)));
 </script>
 
 <div class="grid gap-5 lg:grid-cols-2">
@@ -104,6 +136,33 @@
         <select class="input" bind:value={addUserId}>
           <option value="">Add member…</option>
           {#each candidates as u}<option value={u.id}>{u.displayName} (@{u.userName})</option>{/each}
+        </select>
+        <button class="btn-primary">Add</button>
+      </form>
+    {/if}
+  </div>
+
+  <!-- Groups (their members all get project access) -->
+  <div class="card p-5">
+    <h3 class="mb-1 font-semibold text-slate-700">Groups</h3>
+    <p class="mb-3 text-xs text-slate-400">Everyone in a linked group can access this project without being added individually.</p>
+    <ul class="divide-y divide-slate-100 text-sm">
+      {#each groups as g (g.id)}
+        <li class="flex items-center gap-2 py-2">
+          <span class="grid h-6 w-6 place-items-center rounded bg-indigo-100 text-xs font-semibold text-indigo-700">{g.name.slice(0, 1).toUpperCase()}</span>
+          <span class="font-medium">{g.name}</span>
+          <span class="text-xs text-slate-400">{g.memberCount} member{g.memberCount === 1 ? '' : 's'}</span>
+          <button class="btn-ghost ml-auto !text-xs text-rose-600" onclick={() => removeGroup(g)}>Remove</button>
+        </li>
+      {:else}
+        <li class="py-2 text-xs text-slate-400">No groups linked.</li>
+      {/each}
+    </ul>
+    {#if auth.isAdmin}
+      <form onsubmit={addGroup} class="mt-3 flex gap-2">
+        <select class="input" bind:value={addGroupId}>
+          <option value="">Add group…</option>
+          {#each groupCandidates as g}<option value={g.id}>{g.name} ({g.memberCount})</option>{/each}
         </select>
         <button class="btn-primary">Add</button>
       </form>

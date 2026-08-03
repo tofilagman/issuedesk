@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM project_groups WHERE project_id = $1 AND group_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0069ad231986f9f8b608e38034a23267ade5345d11d1273fd91feaad2b1c6bf"
+}

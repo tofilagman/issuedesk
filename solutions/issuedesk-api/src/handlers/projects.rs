@@ -8,9 +8,9 @@ use validator::Validate;
 use crate::{
     auth::AuthUser,
     db,
-    dto::{CreateProjectRequest, UpdateProjectRequest, PROJECT_KEY_RE},
+    dto::{AddProjectGroupRequest, CreateProjectRequest, UpdateProjectRequest, PROJECT_KEY_RE},
     error::{AppError, Result},
-    models::ProjectRow,
+    models::{GroupRow, ProjectRow},
     state::AppState,
 };
 
@@ -74,5 +74,42 @@ pub async fn delete(
 ) -> Result<Json<serde_json::Value>> {
     user.require_admin()?;
     db::projects::delete(&state.pool, id).await?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+// ----------------------------- linked groups -----------------------------
+
+pub async fn list_groups(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<GroupRow>>> {
+    db::authorize_project(&state.pool, &user, id).await?;
+    let rows = db::projects::list_groups(&state.pool, id).await?;
+    Ok(Json(rows))
+}
+
+pub async fn add_group(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(id): Path<Uuid>,
+    Json(req): Json<AddProjectGroupRequest>,
+) -> Result<Json<Vec<GroupRow>>> {
+    // Same rule as membership management: admins or non-customer members.
+    user.require_not_customer()?;
+    db::authorize_project(&state.pool, &user, id).await?;
+    db::projects::add_group(&state.pool, id, req.group_id).await?;
+    let rows = db::projects::list_groups(&state.pool, id).await?;
+    Ok(Json(rows))
+}
+
+pub async fn remove_group(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path((id, group_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<serde_json::Value>> {
+    user.require_not_customer()?;
+    db::authorize_project(&state.pool, &user, id).await?;
+    db::projects::remove_group(&state.pool, id, group_id).await?;
     Ok(Json(serde_json::json!({ "ok": true })))
 }

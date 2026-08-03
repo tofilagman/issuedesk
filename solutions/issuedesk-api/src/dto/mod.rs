@@ -149,6 +149,12 @@ pub struct AddGroupMemberRequest {
     pub user_id: Uuid,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddProjectGroupRequest {
+    pub group_id: Uuid,
+}
+
 // ----------------------------- members -----------------------------
 
 #[derive(Debug, Deserialize, Validate)]
