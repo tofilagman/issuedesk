@@ -2,6 +2,7 @@
   import { NodeViewWrapper } from 'svelte-tiptap';
   import type { NodeViewProps } from '@tiptap/core';
   import { renderMermaid } from './mermaidRenderer';
+  import { mediaViewer } from '$lib/stores/media.svelte';
 
   let { node, updateAttributes, deleteNode, editor, selected }: NodeViewProps = $props();
 
@@ -51,6 +52,11 @@
   });
 
   const rows = $derived(Math.min(24, Math.max(4, code.split('\n').length + 1)));
+
+  /** Open the rendered diagram in the shared lightbox (zoom/pan). */
+  function expand() {
+    if (svg) mediaViewer.open({ kind: 'diagram', svg, name: 'diagram' });
+  }
 </script>
 
 <NodeViewWrapper class="mermaid-node">
@@ -73,7 +79,14 @@
         >
         <button
           type="button"
-          class="mmd-tab ml-auto text-rose-600"
+          class="mmd-tab ml-auto"
+          title="View full size"
+          disabled={!svg}
+          onclick={expand}>Expand</button
+        >
+        <button
+          type="button"
+          class="mmd-tab text-rose-600"
           title="Remove diagram"
           onclick={() => deleteNode()}>Remove</button
         >
@@ -102,8 +115,15 @@
             <pre>{error}</pre>
           </div>
         {:else if svg}
-          <!-- mermaid sanitizes its own output (securityLevel: 'strict') -->
-          {@html svg}
+          {#if editable}
+            <!-- mermaid sanitizes its own output (securityLevel: 'strict') -->
+            {@html svg}
+          {:else}
+            <button type="button" class="mmd-zoom" title="Click to enlarge" onclick={expand}>
+              <!-- mermaid sanitizes its own output (securityLevel: 'strict') -->
+              {@html svg}
+            </button>
+          {/if}
         {:else if code.trim() === ''}
           <span class="mmd-empty">Empty diagram</span>
         {:else}

@@ -168,6 +168,9 @@ body {
 .tiptap .mmd-preview svg {
   @apply mx-auto h-auto max-w-full;
 }
+.tiptap .mmd-zoom {
+  @apply block w-full cursor-zoom-in;
+}
 .tiptap .mmd-empty {
   @apply text-xs text-slate-400;
 }
@@ -181,4 +184,10 @@ body {
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   @apply pointer-events-none float-left h-0 text-slate-400;
+}
+
+/* Diagram lightbox (MediaViewer, 'diagram' kind) */
+.diagram-content svg {
+  @apply block;
+  max-width: none;
 }
