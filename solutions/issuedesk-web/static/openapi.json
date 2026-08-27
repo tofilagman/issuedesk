@@ -1,17 +1,37 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "issuedesk API — API-key endpoints",
+    "title": "issuedesk API \u2014 API-key endpoints",
     "version": "0.1.0",
-    "description": "The subset of the issuedesk API that an **API key** can call.\n\nAPI keys are read-only — they may call any `GET` endpoint — **with one family of exceptions**: managing comments. A key may post (`POST …/comments`), edit (`PATCH …/comments/{id}`) and delete (`DELETE …/comments/{id}`) comments. Everything else (sign-in, creating/editing/deleting issues, user and key management) is reserved for the browser app and is not shown here.\n\n## Authenticating\n\nSend your key as `X-API-Key: idk_…` (or `Authorization: Bearer idk_…`). API keys are exempt from the browser-lock, so curl/agents need no extra headers. A key acts on behalf of the user who created it, so any comment it posts is attributed to that user; it may edit or delete its own comments (and, as it carries admin rights, any other comment).\n\nThe same endpoints also work from the signed-in browser app via a JWT bearer token."
+    "description": "The subset of the issuedesk API that an **API key** can call.\n\nAPI keys are read-only \u2014 they may call any `GET` endpoint \u2014 **with three families of exceptions**:\n\n- **Comments** \u2014 post (`POST \u2026/comments`), edit (`PATCH \u2026/comments/{id}`) and delete (`DELETE \u2026/comments/{id}`).\n- **Attachments** \u2014 list and upload (`GET`/`POST \u2026/attachments`).\n- **Ticket description** \u2014 replace it (`PATCH /api/tickets/{slug}/description`). This is a dedicated sub-path so a key can rewrite a ticket body without being able to change status, assignee, priority or type.\n\nEverything else (sign-in, creating/deleting issues, changing status or assignment, user and key management) is reserved for the browser app and is not shown here.\n\n## Authenticating\n\nSend your key as `X-API-Key: idk_\u2026` (or `Authorization: Bearer idk_\u2026`). API keys are exempt from the browser-lock, so curl/agents need no extra headers. A key acts on behalf of the user who created it, so any comment it posts is attributed to that user; it may edit or delete its own comments (and, as it carries admin rights, any other comment).\n\nThe same endpoints also work from the signed-in browser app via a JWT bearer token."
   },
-  "servers": [{ "url": "/", "description": "This host" }],
+  "servers": [
+    {
+      "url": "/",
+      "description": "This host"
+    }
+  ],
   "tags": [
-    { "name": "tickets", "description": "Relay endpoints addressed by public KEY-number — the primary surface for API-key clients" },
-    { "name": "projects", "description": "Read project metadata" },
-    { "name": "issues", "description": "Read issues" },
-    { "name": "comments", "description": "Read, post, edit and delete comments" },
-    { "name": "stats", "description": "Read dashboard figures" }
+    {
+      "name": "tickets",
+      "description": "Relay endpoints addressed by public KEY-number \u2014 the primary surface for API-key clients"
+    },
+    {
+      "name": "projects",
+      "description": "Read project metadata"
+    },
+    {
+      "name": "issues",
+      "description": "Read issues"
+    },
+    {
+      "name": "comments",
+      "description": "Read, post, edit and delete comments"
+    },
+    {
+      "name": "stats",
+      "description": "Read dashboard figures"
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -19,7 +39,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "An issuedesk API key (idk_…)."
+        "description": "An issuedesk API key (idk_\u2026)."
       },
       "bearerAuth": {
         "type": "http",
@@ -32,244 +52,778 @@
       "Error": {
         "type": "object",
         "properties": {
-          "error": { "type": "string", "example": "not_found" },
-          "message": { "type": "string", "example": "issue not found" }
+          "error": {
+            "type": "string",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string",
+            "example": "issue not found"
+          }
         }
       },
       "Label": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "color": { "type": "string", "example": "#22c55e" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "example": "#22c55e"
+          }
         }
       },
       "IssueDetail": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "projectId": { "type": "string", "format": "uuid" },
-          "projectKey": { "type": "string", "example": "WAT" },
-          "key": { "type": "string", "example": "WAT-1" },
-          "number": { "type": "integer", "format": "int64" },
-          "title": { "type": "string" },
-          "description": { "type": "string", "nullable": true, "description": "Rich HTML/Markdown." },
-          "type": { "type": "integer", "description": "0 bug, 1 task, 2 story, 3 epic" },
-          "status": { "type": "integer", "description": "0 Todo, 1 InProgress, 2 Implemented, 3 InReview, 4 Done" },
-          "priority": { "type": "integer", "description": "0 low, 1 medium, 2 high, 3 urgent" },
-          "assigneeId": { "type": "string", "format": "uuid", "nullable": true },
-          "assigneeName": { "type": "string", "nullable": true },
-          "reporterId": { "type": "string", "format": "uuid" },
-          "reporterName": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "labels": { "type": "array", "items": { "$ref": "#/components/schemas/Label" } }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string",
+            "example": "WAT"
+          },
+          "key": {
+            "type": "string",
+            "example": "WAT-1"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Rich HTML/Markdown."
+          },
+          "type": {
+            "type": "integer",
+            "description": "0 bug, 1 task, 2 story, 3 epic"
+          },
+          "status": {
+            "type": "integer",
+            "description": "0 Todo, 1 InProgress, 2 Implemented, 3 InReview, 4 Done"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "0 low, 1 medium, 2 high, 3 urgent"
+          },
+          "assigneeId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "assigneeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            }
+          }
         }
       },
       "IssueListItem": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "key": { "type": "string", "example": "WAT-1" },
-          "number": { "type": "integer", "format": "int64" },
-          "title": { "type": "string" },
-          "type": { "type": "integer" },
-          "status": { "type": "integer" },
-          "priority": { "type": "integer" },
-          "assigneeId": { "type": "string", "format": "uuid", "nullable": true },
-          "assigneeName": { "type": "string", "nullable": true },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "labels": { "type": "array", "items": { "$ref": "#/components/schemas/Label" } }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "example": "WAT-1"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "assigneeId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "assigneeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            }
+          }
         }
       },
       "IssueListResponse": {
         "type": "object",
         "properties": {
-          "items": { "type": "array", "items": { "$ref": "#/components/schemas/IssueListItem" } },
-          "total": { "type": "integer", "format": "int64" },
-          "page": { "type": "integer", "format": "int64" },
-          "pageSize": { "type": "integer", "format": "int64" }
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int64"
+          }
         }
       },
       "Comment": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "issueId": { "type": "string", "format": "uuid" },
-          "authorId": { "type": "string", "format": "uuid" },
-          "authorName": { "type": "string" },
-          "body": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "CreateCommentRequest": {
         "type": "object",
-        "required": ["body"],
-        "properties": { "body": { "type": "string", "minLength": 1 } }
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       },
       "UpdateCommentRequest": {
         "type": "object",
-        "required": ["body"],
-        "properties": { "body": { "type": "string", "minLength": 1 } }
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       },
       "OkResponse": {
         "type": "object",
-        "properties": { "ok": { "type": "boolean", "example": true } }
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        }
       },
       "Activity": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "actorName": { "type": "string" },
-          "action": { "type": "integer" },
-          "oldValue": { "type": "string", "nullable": true },
-          "newValue": { "type": "string", "nullable": true },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "action": {
+            "type": "integer"
+          },
+          "oldValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "newValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "IssueLink": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "linkType": { "type": "integer", "description": "0 relates to, 1 blocks, 2 is blocked by, 3 duplicates, 4 is duplicated by" },
-          "issueId": { "type": "string", "format": "uuid" },
-          "key": { "type": "string" },
-          "number": { "type": "integer", "format": "int64" },
-          "title": { "type": "string" },
-          "status": { "type": "integer" },
-          "projectKey": { "type": "string" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "linkType": {
+            "type": "integer",
+            "description": "0 relates to, 1 blocks, 2 is blocked by, 3 duplicates, 4 is duplicated by"
+          },
+          "issueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "projectKey": {
+            "type": "string"
+          }
         }
       },
       "TicketBundle": {
         "type": "object",
         "properties": {
-          "issue": { "$ref": "#/components/schemas/IssueDetail" },
-          "comments": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } },
-          "activity": { "type": "array", "items": { "$ref": "#/components/schemas/Activity" } },
-          "links": { "type": "array", "items": { "$ref": "#/components/schemas/IssueLink" } },
-          "attachments": { "type": "array", "items": { "$ref": "#/components/schemas/Attachment" } }
+          "issue": {
+            "$ref": "#/components/schemas/IssueDetail"
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comment"
+            }
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Activity"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueLink"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            }
+          }
         }
       },
       "Attachment": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "issueId": { "type": "string", "format": "uuid" },
-          "filename": { "type": "string" },
-          "storedPath": { "type": "string" },
-          "sizeBytes": { "type": "integer", "format": "int64" },
-          "mimeType": { "type": "string" },
-          "uploadedBy": { "type": "string", "format": "uuid" },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "storedPath": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "uploadedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "Project": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "key": { "type": "string", "example": "WAT" },
-          "name": { "type": "string" },
-          "description": { "type": "string", "nullable": true }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "example": "WAT"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateTicketDescriptionRequest": {
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Full replacement text (Markdown). An empty string clears the description."
+          }
         }
       }
     }
   },
-  "security": [{ "apiKeyAuth": [] }, { "bearerAuth": [] }],
+  "security": [
+    {
+      "apiKeyAuth": []
+    },
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/api/tickets/{slug}": {
       "get": {
-        "tags": ["tickets"],
+        "tags": [
+          "tickets"
+        ],
         "summary": "Fetch a whole ticket by public key (e.g. WAT-1)",
         "description": "The URL-friendly relay entry point: an API key plus the key from the ticket URL is enough. `?format=md` returns Markdown; otherwise JSON.",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" },
-          { "name": "format", "in": "query", "required": false, "schema": { "type": "string", "enum": ["md"] }, "description": "`md` for Markdown; omit for JSON." }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "md"
+              ]
+            },
+            "description": "`md` for Markdown; omit for JSON."
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/TicketBundle" } },
-              "text/markdown": { "schema": { "type": "string" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketBundle"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{slug}/description": {
+      "patch": {
+        "tags": [
+          "tickets"
+        ],
+        "summary": "Replace a ticket's description by public key",
+        "description": "The narrow, slug-addressed counterpart to PATCH /api/issues/{id}: it replaces the description and nothing else, so an API key can rewrite a ticket body without being able to change status, assignee, priority or type. Records no activity entry, matching the browser app\u2019s own description edit.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketDescriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Customers may only edit issues they reported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/tickets/{slug}/comments": {
       "post": {
-        "tags": ["tickets"],
+        "tags": [
+          "tickets"
+        ],
         "summary": "Add a comment to a ticket by public key",
         "description": "Slug-addressed counterpart to POST /api/issues/{id}/comments, so a relay client (API key) can comment back with only the key from the ticket URL. The comment is attributed to the key's creator.",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCommentRequest" } } }
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          }
         },
         "responses": {
-          "200": { "description": "Created comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Created comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/tickets/{slug}/comments/{commentId}": {
       "patch": {
-        "tags": ["tickets"],
+        "tags": [
+          "tickets"
+        ],
         "summary": "Edit a comment on a ticket by public key",
         "description": "Slug-addressed counterpart to PATCH /api/comments/{id}. The caller must own the comment (or be an admin; API keys carry admin rights).",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" },
-          { "name": "commentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateCommentRequest" } } }
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommentRequest"
+              }
+            }
+          }
         },
         "responses": {
-          "200": { "description": "Updated comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } },
-          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Updated comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       },
       "delete": {
-        "tags": ["tickets"],
+        "tags": [
+          "tickets"
+        ],
         "summary": "Delete a comment on a ticket by public key",
         "description": "Slug-addressed counterpart to DELETE /api/comments/{id}. The caller must own the comment (or be an admin; API keys carry admin rights).",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" },
-          { "name": "commentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OkResponse" } } } },
-          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/tickets/{slug}/attachments": {
       "get": {
-        "tags": ["tickets"],
+        "tags": [
+          "tickets"
+        ],
         "summary": "List a ticket's attachments by public key",
         "description": "Slug-addressed counterpart to GET /api/issues/{id}/attachments. Each item's `id` downloads via GET /api/attachments/{id}.",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          }
         ],
         "responses": {
-          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Attachment" } } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Attachment"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       },
       "post": {
-        "tags": ["tickets"],
+        "tags": [
+          "tickets"
+        ],
         "summary": "Upload an attachment to a ticket by public key",
         "description": "Slug-addressed counterpart to POST /api/issues/{id}/attachments, so a relay client (API key) can attach a file when commenting back with only the key from the ticket URL. Send multipart/form-data with a single file field. The returned `id` downloads via GET /api/attachments/{id}.",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "WAT-1" }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "WAT-1"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -277,116 +831,463 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["file"],
-                "properties": { "file": { "type": "string", "format": "binary" } }
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Created attachment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Attachment" } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "413": { "description": "File exceeds the upload size limit", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Created attachment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File exceeds the upload size limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/projects": {
       "get": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "List projects visible to the caller",
-        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } } } } } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/projects/{id}": {
       "get": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Get a project",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Project" } } } } }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/projects/{id}/issues": {
       "get": {
-        "tags": ["issues"],
+        "tags": [
+          "issues"
+        ],
         "summary": "List issues in a project",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "status", "in": "query", "schema": { "type": "integer" } },
-          { "name": "assigneeId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-          { "name": "type", "in": "query", "schema": { "type": "integer" } },
-          { "name": "priority", "in": "query", "schema": { "type": "integer" } },
-          { "name": "labelId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-          { "name": "q", "in": "query", "schema": { "type": "string" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
-          { "name": "pageSize", "in": "query", "schema": { "type": "integer" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "assigneeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "labelId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IssueListResponse" } } } } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueListResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/projects/{id}/issues/{number}": {
       "get": {
-        "tags": ["issues"],
+        "tags": [
+          "issues"
+        ],
         "summary": "Get an issue by its per-project number",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "number", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
         ],
-        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IssueDetail" } } } } }
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDetail"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/issues/{id}": {
       "get": {
-        "tags": ["issues"],
+        "tags": [
+          "issues"
+        ],
         "summary": "Get an issue by id",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IssueDetail" } } } } }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDetail"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/issues/{id}/comments": {
       "get": {
-        "tags": ["comments"],
+        "tags": [
+          "comments"
+        ],
         "summary": "List comments on an issue",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } } } } } }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "post": {
-        "tags": ["comments"],
+        "tags": [
+          "comments"
+        ],
         "summary": "Add a comment to an issue (by id)",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCommentRequest" } } } },
-        "responses": { "200": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } } }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/comments/{id}": {
       "patch": {
-        "tags": ["comments"],
+        "tags": [
+          "comments"
+        ],
         "summary": "Edit a comment (by id)",
         "description": "The caller must own the comment (or be an admin; API keys carry admin rights).",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateCommentRequest" } } } },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommentRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } },
-          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       },
       "delete": {
-        "tags": ["comments"],
+        "tags": [
+          "comments"
+        ],
         "summary": "Delete a comment (by id)",
         "description": "The caller must own the comment (or be an admin; API keys carry admin rights).",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OkResponse" } } } },
-          "403": { "description": "Not your comment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/stats": {
       "get": {
-        "tags": ["stats"],
+        "tags": [
+          "stats"
+        ],
         "summary": "System-wide dashboard figures (scoped to visible projects)",
-        "responses": { "200": { "description": "OK" } }
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     }
   }

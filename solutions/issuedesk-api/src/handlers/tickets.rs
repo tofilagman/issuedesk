@@ -13,7 +13,10 @@ use validator::Validate;
 use crate::{
     auth::AuthUser,
     db,
-    dto::{CreateCommentRequest, TicketBundle, TicketQuery, UpdateCommentRequest},
+    dto::{
+        CreateCommentRequest, IssueDetail, TicketBundle, TicketQuery, UpdateCommentRequest,
+        UpdateIssueRequest, UpdateTicketDescriptionRequest,
+    },
     error::{AppError, Result},
     handlers::attachments,
     models::{AttachmentRow, CommentRow},
@@ -87,6 +90,48 @@ pub async fn comment(
     let issue_id = resolve(&state, &user, &slug).await?;
     let row = db::comments::create(&state.pool, issue_id, user.id(), &req.body).await?;
     Ok(Json(row))
+}
+
+/// `PATCH /api/tickets/{KEY-number}/description` — replace a ticket's
+/// description by its public key. The narrow, slug-addressed counterpart to
+/// `PATCH /api/issues/{id}`: a relay client (API key) can rewrite the
+/// description without being able to touch status, assignee, priority or type.
+///
+/// Like the browser app's own description edit, this records no activity row —
+/// there is no "changed description" action.
+pub async fn description_update(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(slug): Path<String>,
+    Json(req): Json<UpdateTicketDescriptionRequest>,
+) -> Result<Json<IssueDetail>> {
+    req.validate()?;
+    let issue_id = resolve(&state, &user, &slug).await?;
+
+    // Same rule as `PATCH /api/issues/{id}`: a customer may only edit what they
+    // reported. API keys act as admins, so they are unaffected.
+    if user.is_customer() {
+        let (_, reporter_id) = db::issues::project_and_reporter(&state.pool, issue_id).await?;
+        if reporter_id != user.id() {
+            return Err(AppError::Forbidden(
+                "customers may only edit issues they reported".into(),
+            ));
+        }
+    }
+
+    // Spelled out field by field on purpose: this is a privilege boundary, so a
+    // future field on UpdateIssueRequest should fail the build here rather than
+    // silently widen what a key can change.
+    let update = UpdateIssueRequest {
+        title: None,
+        description: Some(req.description),
+        r#type: None,
+        status: None,
+        priority: None,
+        assignee_id: None,
+    };
+    let detail = db::issues::update(&state.pool, issue_id, user.id(), &update).await?;
+    Ok(Json(detail))
 }
 
 /// `PATCH /api/tickets/{KEY-number}/comments/{commentId}` — edit a comment on a

@@ -198,6 +198,17 @@ pub struct UpdateIssueRequest {
     pub assignee_id: Option<Option<Uuid>>,
 }
 
+/// Body for `PATCH /api/tickets/{slug}/description`.
+///
+/// Deliberately narrower than `UpdateIssueRequest`: the slug surface is the one
+/// API keys can reach, so it may replace the description and nothing else.
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateTicketDescriptionRequest {
+    /// Full replacement text; an empty string clears the description.
+    pub description: String,
+}
+
 /// Query parameters for the issue list (backs both the table and the board).
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

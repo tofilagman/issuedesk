@@ -39,17 +39,22 @@ pub async fn require_auth(
 ) -> Result<Response, AppError> {
     // --- API key path (X-API-Key header, or a Bearer token shaped like a key) ---
     if let Some(secret) = extract_api_key(&req) {
-        // Read-only, with two families of exceptions: managing comments and
-        // attachments. A key may post/edit/delete comments (`…/comments`,
-        // `…/comments/{id}`) and upload/delete attachments (`…/attachments`,
-        // `…/attachments/{id}`) — so a relay client can comment back with a file.
+        // Read-only, with three families of exceptions: managing comments,
+        // attachments, and a ticket's description. A key may post/edit/delete
+        // comments (`…/comments`, `…/comments/{id}`), upload/delete attachments
+        // (`…/attachments`, `…/attachments/{id}`) — so a relay client can comment
+        // back with a file — and replace a ticket's description
+        // (`/api/tickets/{slug}/description`). Note the last one is a dedicated
+        // sub-path precisely so it can be allowed here without opening up
+        // `PATCH /api/tickets/{slug}` (status, assignee, type…).
         // Everything else must be a safe (GET) request.
         let path = req.uri().path();
         let is_relay_write = matches!(*req.method(), Method::POST | Method::PATCH | Method::DELETE)
             && (path.ends_with("/comments")
                 || path.contains("/comments/")
                 || path.ends_with("/attachments")
-                || path.contains("/attachments/"));
+                || path.contains("/attachments/")
+                || path.ends_with("/description"));
         if req.method() != Method::GET && !is_relay_write {
             return Err(AppError::Forbidden(
                 "API keys are read-only (except managing comments and attachments)".to_string(),
