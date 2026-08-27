@@ -78,12 +78,12 @@
 <div class="mb-4 flex items-center">
   <div>
     <h1 class="text-xl font-semibold">API Keys</h1>
-    <p class="text-sm text-slate-500">
+    <p class="text-sm text-slate-500 dark:text-slate-400">
       Read-only credentials for relaying tickets to external clients (e.g. Claude).
     </p>
   </div>
   <div class="ml-auto flex items-center gap-2">
-    <a class="btn-ghost" href="/swagger.html" target="_blank" rel="noopener">API docs (Swagger)</a>
+    <a class="btn-ghost" href="/api-docs.html" target="_blank" rel="noopener">API docs</a>
     <button class="btn-primary" onclick={() => (showNew = !showNew)}>New key</button>
   </div>
 </div>
@@ -91,7 +91,7 @@
 {#if showNew}
   <form onsubmit={create} class="card mb-5 flex flex-wrap items-end gap-3 p-4">
     <div class="flex-1 min-w-[14rem]">
-      <label class="mb-1 block text-xs text-slate-500" for="kn">Key name</label>
+      <label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="kn">Key name</label>
       <input id="kn" class="input w-full" placeholder="e.g. claude-relay" bind:value={name} required />
     </div>
     <button class="btn-primary" disabled={busy}>Generate</button>
@@ -109,12 +109,12 @@
       Copy it now — this is the only time the full secret is shown.
     </p>
     <div class="mb-3 flex items-center gap-2">
-      <code class="flex-1 overflow-x-auto rounded bg-white px-3 py-2 font-mono text-sm text-slate-800 ring-1 ring-emerald-200">{created.secret}</code>
+      <code class="flex-1 overflow-x-auto rounded bg-white px-3 py-2 font-mono text-sm text-slate-800 ring-1 ring-emerald-200 dark:bg-slate-900 dark:text-slate-100">{created.secret}</code>
       <button class="btn-primary !py-2" onclick={() => copy(created!.secret, 'Key copied')}>Copy</button>
     </div>
     <p class="mb-1 text-xs font-medium uppercase tracking-wide text-emerald-800">Relay a ticket to Claude</p>
     <div class="flex items-center gap-2">
-      <code class="flex-1 overflow-x-auto rounded bg-white px-3 py-2 font-mono text-xs text-slate-700 ring-1 ring-emerald-200">curl -H "X-API-Key: {created.secret}" {origin}/api/tickets/WAT-1?format=md</code>
+      <code class="flex-1 overflow-x-auto rounded bg-white px-3 py-2 font-mono text-xs text-slate-700 ring-1 ring-emerald-200 dark:bg-slate-900 dark:text-slate-200">curl -H "X-API-Key: {created.secret}" {origin}/api/tickets/WAT-1?format=md</code>
       <button
         class="btn-ghost !text-xs"
         onclick={() => copy(`curl -H "X-API-Key: ${created!.secret}" ${origin}/api/tickets/WAT-1?format=md`, 'Command copied')}
@@ -129,7 +129,7 @@
 
 <div class="card overflow-hidden">
   <table class="w-full text-sm">
-    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
+    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
       <tr>
         <th class="px-3 py-2">Name</th>
         <th class="px-3 py-2">Key</th>
@@ -140,20 +140,20 @@
     </thead>
     <tbody>
       {#each keys as k (k.id)}
-        <tr class="border-b border-slate-100">
+        <tr class="border-b border-slate-100 dark:border-slate-800">
           <td class="px-3 py-2 font-medium">{k.name}</td>
-          <td class="px-3 py-2"><code class="font-mono text-slate-500">{k.prefix}…</code></td>
-          <td class="px-3 py-2 text-slate-600">{fmt(k.lastUsedAt)}</td>
-          <td class="px-3 py-2 text-slate-600">{fmt(k.createdAt)}</td>
+          <td class="px-3 py-2"><code class="font-mono text-slate-500 dark:text-slate-400">{k.prefix}…</code></td>
+          <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{fmt(k.lastUsedAt)}</td>
+          <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{fmt(k.createdAt)}</td>
           <td class="px-3 py-2 text-right">
             <button class="btn-ghost !text-xs !text-rose-600" onclick={() => revoke(k)}>Revoke</button>
           </td>
         </tr>
       {/each}
       {#if !loading && keys.length === 0}
-        <tr><td colspan="5" class="px-3 py-6 text-center text-slate-400">No API keys yet.</td></tr>
+        <tr><td colspan="5" class="px-3 py-6 text-center text-slate-400 dark:text-slate-500">No API keys yet.</td></tr>
       {/if}
     </tbody>
   </table>
-  {#if loading}<p class="p-4 text-center text-slate-400">Loading…</p>{/if}
+  {#if loading}<p class="p-4 text-center text-slate-400 dark:text-slate-500">Loading…</p>{/if}
 </div>

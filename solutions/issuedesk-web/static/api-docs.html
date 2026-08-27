@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>issuedesk API</title>
+    <link rel="icon" href="/favicon.svg" />
+    <script>
+      // Adopt the app's stored colour scheme before first paint. Stoplight
+      // Elements themes itself off [data-theme] on <html>, which is the same
+      // attribute the SvelteKit app sets (see stores/theme.svelte.ts), so the
+      // docs page matches whatever the user picked in the app.
+      (function () {
+        try {
+          var c = localStorage.getItem('issuedesk-theme');
+          if (c !== 'light' && c !== 'dark') {
+            c = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.dataset.theme = c;
+          document.documentElement.style.colorScheme = c;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <!-- Prebuilt, browser-ready Stoplight Elements bundle (v9.0.24) served as a
+         static asset, for the same reason Swagger UI was before it: these docs
+         UIs expect Node globals and break in a rollup prod build, and a
+         self-hosted install must not depend on a CDN. Vendored from
+         @stoplight/elements — see vendor/elements/LICENSE. -->
+    <link rel="stylesheet" href="/vendor/elements/styles.min.css" />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 1.25rem;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        flex: none;
+      }
+      [data-theme='dark'] .bar {
+        background: #0f172a;
+        border-bottom-color: #1e293b;
+      }
+      .bar h1 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      [data-theme='dark'] .bar h1 {
+        color: #e2e8f0;
+      }
+      .bar a {
+        font-size: 0.8rem;
+        color: #4f46e5;
+        text-decoration: none;
+      }
+      [data-theme='dark'] .bar a {
+        color: #818cf8;
+      }
+      .bar a:hover {
+        text-decoration: underline;
+      }
+      .bar .spacer {
+        margin-left: auto;
+      }
+      #theme {
+        cursor: pointer;
+        border: 0;
+        background: transparent;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0.25rem 0.4rem;
+        border-radius: 0.25rem;
+        color: #64748b;
+      }
+      #theme:hover {
+        background: #e2e8f0;
+      }
+      [data-theme='dark'] #theme:hover {
+        background: #1e293b;
+      }
+      elements-api {
+        flex: 1;
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <h1>issuedesk API</h1>
+      <a href="/openapi.json" target="_blank" rel="noopener">openapi.json</a>
+      <span class="spacer"></span>
+      <button id="theme" type="button" aria-label="Toggle colour theme" title="Toggle colour theme"></button>
+      <a href="/admin/keys">&larr; API keys</a>
+    </div>
+
+    <elements-api
+      apiDescriptionUrl="/openapi.json"
+      router="hash"
+      layout="sidebar"
+      tryItCredentialsPolicy="same-origin"
+    ></elements-api>
+
+    <script src="/vendor/elements/web-components.min.js"></script>
+    <script>
+      // Keep the toggle in sync with the app's own preference key.
+      (function () {
+        var btn = document.getElementById('theme');
+        var render = function () {
+          btn.textContent = document.documentElement.dataset.theme === 'dark' ? '☀' : '☾';
+        };
+        btn.addEventListener('click', function () {
+          var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = next;
+          document.documentElement.style.colorScheme = next;
+          try {
+            localStorage.setItem('issuedesk-theme', next);
+          } catch (e) {
+            /* private mode — the visual switch still applies */
+          }
+          render();
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>
