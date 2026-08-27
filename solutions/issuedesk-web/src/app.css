@@ -134,6 +134,49 @@ body {
 .tiptap.resize-cursor {
   cursor: col-resize;
 }
+/* Mermaid diagrams */
+.tiptap .mermaid-node {
+  @apply my-3;
+}
+.tiptap .mmd {
+  @apply overflow-hidden rounded-md border border-slate-200 bg-white;
+}
+.tiptap .mmd-selected {
+  @apply ring-2 ring-indigo-300;
+}
+.tiptap .mmd-bar {
+  @apply flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-1.5 py-1 text-xs;
+}
+.tiptap .mmd-grip {
+  @apply cursor-grab select-none px-1 text-slate-400;
+}
+.tiptap .mmd-title {
+  @apply mr-1 font-medium text-slate-500;
+}
+.tiptap .mmd-tab {
+  @apply cursor-pointer rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-200;
+}
+.tiptap .mmd-tab-on {
+  @apply bg-white font-medium text-indigo-600 shadow-sm;
+}
+.tiptap .mmd-source {
+  @apply block w-full resize-y border-0 bg-slate-800 p-3 font-mono text-xs leading-relaxed text-slate-100 outline-none;
+}
+.tiptap .mmd-preview {
+  @apply overflow-x-auto p-3 text-center;
+}
+.tiptap .mmd-preview svg {
+  @apply mx-auto h-auto max-w-full;
+}
+.tiptap .mmd-empty {
+  @apply text-xs text-slate-400;
+}
+.tiptap .mmd-error {
+  @apply rounded bg-rose-50 p-2 text-left text-xs text-rose-700;
+}
+.tiptap .mmd-error pre {
+  @apply mt-1 overflow-x-auto bg-transparent p-0 text-rose-700;
+}
 /* Placeholder (empty editable) */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

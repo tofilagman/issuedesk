@@ -8,7 +8,9 @@
   import { Markdown } from 'tiptap-markdown';
   import { SvelteNodeViewRenderer } from 'svelte-tiptap';
   import { Video } from './Video';
+  import { Mermaid } from './Mermaid';
   import MediaNodeView from './MediaNodeView.svelte';
+  import MermaidNodeView from './MermaidNodeView.svelte';
   import { api } from '$lib/api';
   import { toasts } from '$lib/stores/toast.svelte';
 
@@ -113,6 +115,12 @@
       }
     });
 
+    const MermaidWithView = Mermaid.extend({
+      addNodeView() {
+        return SvelteNodeViewRenderer(MermaidNodeView);
+      }
+    });
+
     editor = new Editor({
       element,
       editable,
@@ -121,6 +129,7 @@
         StarterKit,
         ImageWithView,
         VideoWithView,
+        MermaidWithView,
         Placeholder.configure({ placeholder }),
         TableKit.configure({ table: { resizable: true } }),
         Markdown.configure({ html: true, transformPastedText: true, linkify: true })
@@ -178,7 +187,8 @@
       ordered: e?.isActive('orderedList') ?? false,
       quote: e?.isActive('blockquote') ?? false,
       link: e?.isActive('link') ?? false,
-      table: e?.isActive('table') ?? false
+      table: e?.isActive('table') ?? false,
+      mermaid: e?.isActive('mermaid') ?? false
     };
   });
 
@@ -296,6 +306,19 @@
         title="Insert image or video"
         disabled={uploading}
         onclick={() => fileInput?.click()}>{uploading ? '…' : '📷'}</button>
+      <button
+        type="button"
+        class="te-btn"
+        class:te-on={active.mermaid}
+        title="Insert mermaid diagram"
+        onclick={() => editor?.chain().focus().setMermaid().run()}>
+        <svg viewBox="0 0 16 16" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="5" y="1.5" width="6" height="3.5" rx="0.8" />
+          <rect x="1" y="10.5" width="5.5" height="3.5" rx="0.8" />
+          <rect x="9.5" y="10.5" width="5.5" height="3.5" rx="0.8" />
+          <path d="M8 5v2.5M8 7.5H3.75v3M8 7.5h4.5v3" />
+        </svg>
+      </button>
       {#if active.table}
         <span class="te-sep"></span>
         <button type="button" class="te-btn" title="Add column"
