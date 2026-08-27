@@ -384,7 +384,7 @@
     <!-- Main column -->
     <div class="space-y-5">
       <div class="card p-5">
-        <div class="flex items-center gap-2 text-sm text-slate-400">
+        <div class="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500">
           <span class="font-mono">{issue.key}</span>
           {#if !isCustomer}
             <button class="btn-danger ml-auto !py-1 !text-xs" onclick={deleteIssue}>Delete</button>
@@ -420,18 +420,18 @@
           <div class="mb-1 flex items-center gap-1">
             <button
               type="button"
-              class="-m-1 flex flex-1 items-center gap-1.5 rounded p-1 text-left hover:bg-slate-50"
+              class="-m-1 flex flex-1 items-center gap-1.5 rounded p-1 text-left hover:bg-slate-50 dark:hover:bg-slate-900"
               onclick={toggleDesc}
               aria-expanded={descOpen}
             >
               <svg
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 {descOpen ? '' : '-rotate-90'}"
+                class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 {descOpen ? '' : '-rotate-90'} dark:text-slate-500"
               >
                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
               </svg>
-              <h3 class="text-xs font-semibold text-slate-500">Description</h3>
+              <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400">Description</h3>
             </button>
             {#if !editingDesc && canEditContent}
               <button class="btn-ghost shrink-0 !py-0.5 !text-xs" onclick={startEditDesc}>Edit</button>
@@ -454,7 +454,7 @@
             {:else if issue.description}
               <RichEditor value={issue.description} />
             {:else}
-              <p class="text-sm text-slate-400">No description.</p>
+              <p class="text-sm text-slate-400 dark:text-slate-500">No description.</p>
             {/if}
           {/if}
         </div>
@@ -468,23 +468,23 @@
           {/if}
         {/snippet}
         {#if links.length === 0}
-          <p class="text-xs text-slate-400">No linked issues.</p>
+          <p class="text-xs text-slate-400 dark:text-slate-500">No linked issues.</p>
         {:else}
           <div class="space-y-3">
             {#each groupedLinks as group (group.type)}
               <div>
-                <div class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                <div class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   {LINK_TYPE_LABELS[group.type]}
                 </div>
                 <ul class="space-y-1">
                   {#each group.items as lk (lk.id)}
                     <li class="flex items-center gap-2 text-sm">
-                      <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                      <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                         {STATUS_LABELS[lk.status]}
                       </span>
                       <a href={`/p/${lk.projectKey}/issue/${lk.number}`} class="flex min-w-0 items-center gap-1.5 hover:underline">
-                        <span class="font-mono text-xs text-slate-400">{lk.key}</span>
-                        <span class="truncate text-slate-700">{lk.title}</span>
+                        <span class="font-mono text-xs text-slate-400 dark:text-slate-500">{lk.key}</span>
+                        <span class="truncate text-slate-700 dark:text-slate-200">{lk.title}</span>
                       </a>
                       {#if !isCustomer}
                         <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" title="Remove link" onclick={() => removeLink(lk)}>✕</button>
@@ -507,14 +507,14 @@
           </label>
         {/snippet}
         {#if attachments.length === 0}
-          <p class="text-xs text-slate-400">No attachments.</p>
+          <p class="text-xs text-slate-400 dark:text-slate-500">No attachments.</p>
         {:else}
           <ul class="divide-y divide-slate-100 text-sm">
             {#each attachments as a (a.id)}
               <li class="flex items-center gap-2 py-1.5">
                 <AttachmentThumb att={a} />
                 <button class="truncate text-indigo-600 hover:underline" onclick={() => download(a)}>{a.filename}</button>
-                <span class="shrink-0 text-xs text-slate-400">{fmtSize(a.sizeBytes)}</span>
+                <span class="shrink-0 text-xs text-slate-400 dark:text-slate-500">{fmtSize(a.sizeBytes)}</span>
                 {#if !isCustomer}
                   <button class="btn-ghost ml-auto !py-0.5 !text-xs text-rose-600" onclick={() => deleteAttachment(a)}>✕</button>
                 {/if}
@@ -544,12 +544,12 @@
 
         <div class="space-y-3">
           {#each visibleComments as c (c.id)}
-            <div class="rounded-md bg-slate-50 p-3">
-              <div class="flex items-center gap-2 text-xs text-slate-500">
+            <div class="rounded-md bg-slate-50 p-3 dark:bg-slate-900">
+              <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <Avatar seed={c.authorId} name={c.authorName} size={22} />
-                <span class="font-medium text-slate-700">{c.authorName}</span>
+                <span class="font-medium text-slate-700 dark:text-slate-200">{c.authorName}</span>
                 <span>{fmt(c.createdAt)}</span>
-                {#if c.updatedAt !== c.createdAt}<span class="text-slate-400">(edited)</span>{/if}
+                {#if c.updatedAt !== c.createdAt}<span class="text-slate-400 dark:text-slate-500">(edited)</span>{/if}
                 {#if canEditComment(c) && editingCommentId !== c.id}
                   <div class="ml-auto flex gap-1">
                     <button class="btn-ghost !py-0.5 !text-xs" onclick={() => startEditComment(c)}>Edit</button>
@@ -577,7 +577,7 @@
             </div>
           {/each}
           {#if comments.length === 0}
-            <p class="text-xs text-slate-400">No comments yet.</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">No comments yet.</p>
           {/if}
         </div>
         {#if sortedComments.length > visibleCount}
@@ -590,7 +590,7 @@
               class="btn-ghost !text-xs"
               onclick={() => (visibleCount = sortedComments.length)}
             >Show all</button>
-            <span class="text-slate-400">Showing {visibleCount} of {sortedComments.length}</span>
+            <span class="text-slate-400 dark:text-slate-500">Showing {visibleCount} of {sortedComments.length}</span>
           </div>
         {:else if visibleCount > COMMENT_BATCH}
           <div class="mt-3">
@@ -605,9 +605,9 @@
       <CollapsibleCard title="Details" storageKey="details">
         <div class="space-y-3 text-sm">
         <div>
-          <span class="mb-1 block text-xs font-medium text-slate-500">Status</span>
+          <span class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Status</span>
           {#if isCustomer}
-            <p class="text-slate-700">{STATUS_LABELS[issue.status]}</p>
+            <p class="text-slate-700 dark:text-slate-200">{STATUS_LABELS[issue.status]}</p>
           {:else}
             <select class="input" value={issue.status} onchange={(e) => patch({ status: Number((e.target as HTMLSelectElement).value) })}>
               {#each STATUS_LABELS as s, i}<option value={i}>{s}</option>{/each}
@@ -615,9 +615,9 @@
           {/if}
         </div>
         <div>
-          <span class="mb-1 block text-xs font-medium text-slate-500">Assignee</span>
+          <span class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Assignee</span>
           {#if isCustomer}
-            <p class="text-slate-700">{issue.assigneeName ?? 'Unassigned'}</p>
+            <p class="text-slate-700 dark:text-slate-200">{issue.assigneeName ?? 'Unassigned'}</p>
           {:else}
             <select class="input" value={issue.assigneeId ?? ''} onchange={(e) => patch({ assigneeId: (e.target as HTMLSelectElement).value || null })}>
               <option value="">Unassigned</option>
@@ -626,9 +626,9 @@
           {/if}
         </div>
         <div>
-          <span class="mb-1 block text-xs font-medium text-slate-500">Priority</span>
+          <span class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Priority</span>
           {#if isCustomer}
-            <p class="text-slate-700">{PRIORITY_LABELS[issue.priority]}</p>
+            <p class="text-slate-700 dark:text-slate-200">{PRIORITY_LABELS[issue.priority]}</p>
           {:else}
             <select class="input" value={issue.priority} onchange={(e) => patch({ priority: Number((e.target as HTMLSelectElement).value) })}>
               {#each PRIORITY_LABELS as p, i}<option value={i}>{p}</option>{/each}
@@ -636,16 +636,16 @@
           {/if}
         </div>
         <div>
-          <span class="mb-1 block text-xs font-medium text-slate-500">Type</span>
+          <span class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Type</span>
           {#if isCustomer}
-            <p class="text-slate-700">{TYPE_LABELS[issue.type]}</p>
+            <p class="text-slate-700 dark:text-slate-200">{TYPE_LABELS[issue.type]}</p>
           {:else}
             <select class="input" value={issue.type} onchange={(e) => patch({ type: Number((e.target as HTMLSelectElement).value) })}>
               {#each TYPE_LABELS as t, i}<option value={i}>{t}</option>{/each}
             </select>
           {/if}
         </div>
-        <div class="border-t border-slate-100 pt-2 text-xs text-slate-500">
+        <div class="border-t border-slate-100 pt-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
           <div class="flex items-center gap-2">
             <Avatar seed={issue.reporterId} name={issue.reporterName} size={20} />
             <span>Reporter: {issue.reporterName}</span>
@@ -659,7 +659,7 @@
       <CollapsibleCard title="Labels" storageKey="labels">
         {#if isCustomer}
           {#if issue.labels.length === 0}
-            <p class="text-xs text-slate-400">No labels.</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">No labels.</p>
           {:else}
             <div class="flex flex-wrap gap-2">
               {#each issue.labels as l (l.id)}
@@ -668,7 +668,7 @@
             </div>
           {/if}
         {:else if labels.length === 0}
-          <p class="text-xs text-slate-400">No labels defined for this project yet.</p>
+          <p class="text-xs text-slate-400 dark:text-slate-500">No labels defined for this project yet.</p>
         {:else}
           <div class="flex flex-wrap gap-2">
             {#each labels as l (l.id)}
@@ -690,14 +690,14 @@
             <li class="flex gap-2">
               <span class="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400"></span>
               <div>
-                <span class="font-medium text-slate-700">{a.actorName}</span>
-                <span class="text-slate-500"> {actionText(a)}</span>
-                <div class="text-slate-400">{fmt(a.createdAt)}</div>
+                <span class="font-medium text-slate-700 dark:text-slate-200">{a.actorName}</span>
+                <span class="text-slate-500 dark:text-slate-400"> {actionText(a)}</span>
+                <div class="text-slate-400 dark:text-slate-500">{fmt(a.createdAt)}</div>
               </div>
             </li>
           {/each}
           {#if activity.length === 0}
-            <li class="text-slate-400">No activity yet.</li>
+            <li class="text-slate-400 dark:text-slate-500">No activity yet.</li>
           {/if}
         </ol>
       </CollapsibleCard>
@@ -715,7 +715,7 @@
     >
       <div class="card w-full max-w-lg p-5">
         <div class="mb-3 flex items-center">
-          <h2 class="text-base font-semibold text-slate-800">Link an issue</h2>
+          <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">Link an issue</h2>
           <button class="btn-ghost ml-auto !py-0.5" aria-label="Close" onclick={closeLinkModal}>✕</button>
         </div>
         <div class="flex gap-2">
@@ -733,22 +733,22 @@
         </div>
         <div class="mt-3 max-h-72 overflow-y-auto">
           {#if searching}
-            <p class="text-xs text-slate-400">Searching…</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Searching…</p>
           {:else if linkQuery.trim() && linkResults.length === 0}
-            <p class="text-xs text-slate-400">No matching issues.</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">No matching issues.</p>
           {:else}
             <ul class="divide-y divide-slate-100">
               {#each linkResults as r (r.id)}
                 <li>
                   <button
-                    class="flex w-full items-center gap-2 py-2 text-left text-sm hover:bg-slate-50"
+                    class="flex w-full items-center gap-2 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
                     onclick={() => addLink(r)}
                   >
-                    <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                    <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                       {STATUS_LABELS[r.status]}
                     </span>
-                    <span class="font-mono text-xs text-slate-400">{r.key}</span>
-                    <span class="truncate text-slate-700">{r.title}</span>
+                    <span class="font-mono text-xs text-slate-400 dark:text-slate-500">{r.key}</span>
+                    <span class="truncate text-slate-700 dark:text-slate-200">{r.title}</span>
                     <span class="ml-auto text-xs text-indigo-600">+ Link</span>
                   </button>
                 </li>
@@ -756,10 +756,10 @@
             </ul>
           {/if}
         </div>
-        <p class="mt-3 text-[11px] text-slate-400">Links connect issues within this project.</p>
+        <p class="mt-3 text-[11px] text-slate-400 dark:text-slate-500">Links connect issues within this project.</p>
       </div>
     </div>
   {/if}
 {:else}
-  <p class="text-slate-400">Loading issue…</p>
+  <p class="text-slate-400 dark:text-slate-500">Loading issue…</p>
 {/if}

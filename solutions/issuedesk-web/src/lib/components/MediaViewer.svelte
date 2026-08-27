@@ -204,7 +204,7 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         bind:this={stageEl}
-        class="diagram-stage relative flex h-[92vh] w-[94vw] items-center justify-center overflow-hidden rounded-lg bg-white"
+        class="diagram-stage relative flex h-[92vh] w-[94vw] items-center justify-center overflow-hidden rounded-lg bg-white dark:bg-slate-900"
         class:cursor-grabbing={dragging}
         class:cursor-grab={!dragging}
         onwheel={onWheel}

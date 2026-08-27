@@ -30,7 +30,7 @@
 {#if isImage || isVideo}
   <button
     type="button"
-    class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50"
+    class="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
     title={att.filename}
     onclick={open}
   >
@@ -40,7 +40,7 @@
       <video src={url} class="h-full w-full object-cover" muted preload="metadata"></video>
       <span class="pointer-events-none absolute inset-0 grid place-items-center bg-black/25 text-white">▶</span>
     {:else}
-      <span class="grid h-full w-full place-items-center text-xs text-slate-400">…</span>
+      <span class="grid h-full w-full place-items-center text-xs text-slate-400 dark:text-slate-500">…</span>
     {/if}
   </button>
 {/if}

@@ -86,7 +86,7 @@
 
 <div class="card overflow-hidden">
   <table class="w-full text-sm">
-    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
+    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
       <tr>
         <th class="px-3 py-2">Key</th>
         <th class="px-3 py-2">Type</th>
@@ -98,7 +98,7 @@
     </thead>
     <tbody>
       {#each issues as i (i.id)}
-        <tr class="border-b border-slate-100 hover:bg-slate-50">
+        <tr class="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900">
           <td class="px-3 py-2 font-mono text-xs">
             <a class="text-indigo-600 hover:underline" href={`/p/${ctx.project?.key}/issue/${i.number}`}>
               {i.key}
@@ -119,16 +119,16 @@
               {PRIORITY_META[i.priority].label}
             </span>
           </td>
-          <td class="px-3 py-2 text-slate-600">{i.assigneeName ?? '—'}</td>
+          <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{i.assigneeName ?? '—'}</td>
         </tr>
       {/each}
     </tbody>
   </table>
 
   {#if loading}
-    <p class="p-4 text-center text-slate-400">Loading…</p>
+    <p class="p-4 text-center text-slate-400 dark:text-slate-500">Loading…</p>
   {:else if issues.length === 0}
-    <p class="p-8 text-center text-slate-400">No issues.</p>
+    <p class="p-8 text-center text-slate-400 dark:text-slate-500">No issues.</p>
   {/if}
 
   <!-- Infinite-scroll sentinel: loads the next page when it nears the viewport. -->
@@ -138,5 +138,5 @@
 </div>
 
 {#if total > 0}
-  <p class="mt-2 text-center text-xs text-slate-400">Showing {issues.length} of {total}</p>
+  <p class="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">Showing {issues.length} of {total}</p>
 {/if}

@@ -69,17 +69,17 @@
 
 <NodeViewWrapper class="my-2 inline-block max-w-full align-top">
   {#if failed}
-    <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs text-slate-500">
+    <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
       ⚠ media unavailable
     </span>
   {:else if !url}
-    <span class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs text-slate-400">
+    <span class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs text-slate-400 dark:bg-slate-800 dark:text-slate-500">
       Loading…
     </span>
   {:else if isVideo}
     <button
       type="button"
-      class="group relative block overflow-hidden rounded-md border border-slate-200"
+      class="group relative block overflow-hidden rounded-md border border-slate-200 dark:border-slate-700"
       onclick={openViewer}
       title={name || 'Play video'}
     >
@@ -94,7 +94,7 @@
       <img
         src={url}
         alt={name}
-        class="max-h-72 max-w-full cursor-zoom-in rounded-md border border-slate-200"
+        class="max-h-72 max-w-full cursor-zoom-in rounded-md border border-slate-200 dark:border-slate-700"
       />
     </button>
   {/if}

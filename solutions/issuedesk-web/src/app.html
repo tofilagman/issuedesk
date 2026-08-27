@@ -6,6 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>issuedesk</title>
     %sveltekit.head%
+    <script>
+      // Resolve the stored theme before first paint so the app never flashes
+      // light on its way to dark. Mirrors src/lib/stores/theme.svelte.ts.
+      (function () {
+        try {
+          var c = localStorage.getItem('issuedesk-theme');
+          if (c !== 'light' && c !== 'dark') {
+            c = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.dataset.theme = c;
+          document.documentElement.style.colorScheme = c;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
   </head>
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>

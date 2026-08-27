@@ -3,6 +3,7 @@
   import type { NodeViewProps } from '@tiptap/core';
   import { renderMermaid } from './mermaidRenderer';
   import { mediaViewer } from '$lib/stores/media.svelte';
+  import { theme } from '$lib/stores/theme.svelte';
 
   let { node, updateAttributes, deleteNode, editor, selected }: NodeViewProps = $props();
 
@@ -26,6 +27,7 @@
   // Re-render on every source change, debounced so typing stays smooth.
   $effect(() => {
     const src = code;
+    const mode = theme.resolved;
     if (src.trim() === '') {
       svg = '';
       error = null;
@@ -33,7 +35,7 @@
     }
     let cancelled = false;
     const timer = setTimeout(() => {
-      renderMermaid(src)
+      renderMermaid(src, mode)
         .then((out) => {
           if (cancelled) return;
           svg = out;

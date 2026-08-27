@@ -26,8 +26,8 @@
     }}
   >
     <div class="card w-full max-w-sm p-5" role="alertdialog" aria-modal="true" aria-label={c.title ?? 'Confirm'}>
-      <h2 class="text-base font-semibold text-slate-800">{c.title ?? 'Are you sure?'}</h2>
-      <p class="mt-2 text-sm text-slate-600">{c.message}</p>
+      <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">{c.title ?? 'Are you sure?'}</h2>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{c.message}</p>
       <div class="mt-5 flex justify-end gap-2">
         <button class="btn-ghost" onclick={() => confirmDialog.cancel()}>
           {c.cancelText ?? 'Cancel'}

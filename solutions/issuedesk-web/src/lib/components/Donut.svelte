@@ -31,19 +31,19 @@
   <div class="relative shrink-0" style="width:{size}px;height:{size}px">
     <div class="h-full w-full rounded-full" style="background:{gradient}"></div>
     <div
-      class="absolute inset-0 m-auto flex flex-col items-center justify-center rounded-full bg-white"
+      class="absolute inset-0 m-auto flex flex-col items-center justify-center rounded-full bg-white dark:bg-slate-900"
       style="width:{size - thickness * 2}px;height:{size - thickness * 2}px"
     >
-      <span class="text-2xl font-semibold text-slate-800">{sum}</span>
-      <span class="text-[11px] text-slate-400">{centerLabel}</span>
+      <span class="text-2xl font-semibold text-slate-800 dark:text-slate-100">{sum}</span>
+      <span class="text-[11px] text-slate-400 dark:text-slate-500">{centerLabel}</span>
     </div>
   </div>
   <ul class="space-y-1.5 text-sm">
     {#each segments as s (s.label)}
       <li class="flex items-center gap-2">
         <span class="h-2.5 w-2.5 shrink-0 rounded-sm" style="background:{s.color}"></span>
-        <span class="text-slate-600">{s.label}</span>
-        <span class="ml-auto pl-3 font-medium text-slate-500">{s.value}</span>
+        <span class="text-slate-600 dark:text-slate-300">{s.label}</span>
+        <span class="ml-auto pl-3 font-medium text-slate-500 dark:text-slate-400">{s.value}</span>
       </li>
     {/each}
   </ul>

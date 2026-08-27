@@ -121,13 +121,13 @@
 <div class="grid gap-5 lg:grid-cols-2">
   <!-- Members -->
   <div class="card p-5">
-    <h3 class="mb-3 font-semibold text-slate-700">Members</h3>
+    <h3 class="mb-3 font-semibold text-slate-700 dark:text-slate-200">Members</h3>
     <ul class="divide-y divide-slate-100 text-sm">
       {#each members as m (m.userId)}
         <li class="flex items-center gap-2 py-2">
           <Avatar seed={m.userId} name={m.displayName} size={26} />
           <span class="font-medium">{m.displayName}</span>
-          <span class="text-slate-400">@{m.userName}</span>
+          <span class="text-slate-400 dark:text-slate-500">@{m.userName}</span>
           {#if m.role === 1}<span class="rounded bg-amber-100 px-1.5 text-xs text-amber-700">lead</span>{/if}
           <button class="btn-ghost ml-auto !text-xs text-rose-600" onclick={() => removeMember(m)}>Remove</button>
         </li>
@@ -146,18 +146,18 @@
 
   <!-- Groups (their members all get project access) -->
   <div class="card p-5">
-    <h3 class="mb-1 font-semibold text-slate-700">Groups</h3>
-    <p class="mb-3 text-xs text-slate-400">Everyone in a linked group can access this project without being added individually.</p>
+    <h3 class="mb-1 font-semibold text-slate-700 dark:text-slate-200">Groups</h3>
+    <p class="mb-3 text-xs text-slate-400 dark:text-slate-500">Everyone in a linked group can access this project without being added individually.</p>
     <ul class="divide-y divide-slate-100 text-sm">
       {#each groups as g (g.id)}
         <li class="flex items-center gap-2 py-2">
           <span class="grid h-6 w-6 place-items-center rounded bg-indigo-100 text-xs font-semibold text-indigo-700">{g.name.slice(0, 1).toUpperCase()}</span>
           <span class="font-medium">{g.name}</span>
-          <span class="text-xs text-slate-400">{g.memberCount} member{g.memberCount === 1 ? '' : 's'}</span>
+          <span class="text-xs text-slate-400 dark:text-slate-500">{g.memberCount} member{g.memberCount === 1 ? '' : 's'}</span>
           <button class="btn-ghost ml-auto !text-xs text-rose-600" onclick={() => removeGroup(g)}>Remove</button>
         </li>
       {:else}
-        <li class="py-2 text-xs text-slate-400">No groups linked.</li>
+        <li class="py-2 text-xs text-slate-400 dark:text-slate-500">No groups linked.</li>
       {/each}
     </ul>
     {#if auth.isAdmin}
@@ -173,7 +173,7 @@
 
   <!-- Labels -->
   <div class="card p-5">
-    <h3 class="mb-3 font-semibold text-slate-700">Labels</h3>
+    <h3 class="mb-3 font-semibold text-slate-700 dark:text-slate-200">Labels</h3>
     <div class="flex flex-wrap gap-2">
       {#each labels as l (l.id)}
         <span class="label-chip gap-1" style={`background-color:${l.color}`}>
@@ -181,16 +181,16 @@
           <button class="opacity-70 hover:opacity-100" onclick={() => deleteLabel(l)}>✕</button>
         </span>
       {/each}
-      {#if labels.length === 0}<p class="text-xs text-slate-400">No labels yet.</p>{/if}
+      {#if labels.length === 0}<p class="text-xs text-slate-400 dark:text-slate-500">No labels yet.</p>{/if}
     </div>
     <form onsubmit={addLabel} class="mt-4 flex items-end gap-2">
       <div class="flex-1">
-        <label class="mb-1 block text-xs text-slate-500" for="ln">Name</label>
+        <label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="ln">Name</label>
         <input id="ln" class="input" bind:value={nl.name} required />
       </div>
       <div>
-        <label class="mb-1 block text-xs text-slate-500" for="lc">Color</label>
-        <input id="lc" type="color" class="h-9 w-12 rounded border border-slate-300" bind:value={nl.color} />
+        <label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="lc">Color</label>
+        <input id="lc" type="color" class="h-9 w-12 rounded border border-slate-300 dark:border-slate-600" bind:value={nl.color} />
       </div>
       <button class="btn-primary">Add</button>
     </form>

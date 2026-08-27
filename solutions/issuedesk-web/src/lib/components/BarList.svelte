@@ -12,10 +12,10 @@
   {#each items as it (it.label)}
     <li>
       <div class="mb-1 flex items-center justify-between text-xs">
-        <span class="text-slate-600">{it.label}</span>
-        <span class="font-medium text-slate-500">{it.value}</span>
+        <span class="text-slate-600 dark:text-slate-300">{it.label}</span>
+        <span class="font-medium text-slate-500 dark:text-slate-400">{it.value}</span>
       </div>
-      <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
         <div
           class="h-full rounded-full transition-all"
           style="width:{(it.value / max) * 100}%;background:{it.color}"

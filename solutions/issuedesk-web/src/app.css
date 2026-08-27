@@ -1,7 +1,14 @@
 @import 'tailwindcss';
 
+/* Dark mode is driven by data-theme on <html>, set before first paint by the
+   inline script in app.html and thereafter by stores/theme.svelte.ts. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 :root {
   color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 html,
@@ -10,7 +17,7 @@ body {
 }
 
 body {
-  @apply bg-slate-100 text-slate-800 antialiased;
+  @apply bg-slate-100 text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-200;
 }
 
 /* Reusable component classes. In Tailwind v4 `@apply` only accepts real
@@ -23,16 +30,16 @@ body {
   @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors bg-indigo-600 text-white hover:bg-indigo-700;
 }
 .btn-ghost {
-  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-slate-600 hover:bg-slate-200;
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800;
 }
 .btn-danger {
   @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors bg-rose-600 text-white hover:bg-rose-700;
 }
 .input {
-  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200;
+  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-indigo-900;
 }
 .card {
-  @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+  @apply rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
 }
 .label-chip {
   @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white;
@@ -40,27 +47,27 @@ body {
 
 /* ---- Rich text editor (TipTap) ---- */
 .rich-editor.rich-editable {
-  @apply rounded-md border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-200;
+  @apply rounded-md border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-200 dark:border-slate-600 dark:bg-slate-900 dark:focus-within:ring-indigo-900;
 }
 .te-content {
   @apply px-3 py-2;
 }
 .te-btn {
-  @apply grid h-7 min-w-7 place-items-center rounded px-1.5 text-sm text-slate-600 hover:bg-slate-100;
+  @apply grid h-7 min-w-7 place-items-center rounded px-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
 }
 .te-btn.te-on {
-  @apply bg-indigo-100 text-indigo-700;
+  @apply bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300;
 }
 .te-btn:disabled {
   @apply cursor-not-allowed opacity-40 hover:bg-transparent;
 }
 .te-sep {
-  @apply mx-1 h-5 w-px bg-slate-200;
+  @apply mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700;
 }
 
 /* Rendered/edited markdown content. Hand-rolled prose (no typography plugin). */
 .tiptap {
-  @apply text-sm text-slate-700;
+  @apply text-sm text-slate-700 dark:text-slate-300;
 }
 .tiptap:focus {
   @apply outline-none;
@@ -69,13 +76,13 @@ body {
   @apply mt-2;
 }
 .tiptap h1 {
-  @apply mt-3 text-xl font-semibold text-slate-900;
+  @apply mt-3 text-xl font-semibold text-slate-900 dark:text-slate-100;
 }
 .tiptap h2 {
-  @apply mt-3 text-lg font-semibold text-slate-900;
+  @apply mt-3 text-lg font-semibold text-slate-900 dark:text-slate-100;
 }
 .tiptap h3 {
-  @apply mt-2 text-base font-semibold text-slate-900;
+  @apply mt-2 text-base font-semibold text-slate-900 dark:text-slate-100;
 }
 .tiptap ul {
   @apply list-disc pl-5;
@@ -87,13 +94,13 @@ body {
   @apply my-0;
 }
 .tiptap a {
-  @apply text-indigo-600 underline;
+  @apply text-indigo-600 underline dark:text-indigo-400;
 }
 .tiptap blockquote {
-  @apply border-l-2 border-slate-300 pl-3 text-slate-500;
+  @apply border-l-2 border-slate-300 pl-3 text-slate-500 dark:border-slate-600 dark:text-slate-400;
 }
 .tiptap code {
-  @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.85em];
+  @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.85em] dark:bg-slate-800;
 }
 .tiptap pre {
   @apply overflow-x-auto rounded-md bg-slate-800 p-3 text-slate-100;
@@ -102,7 +109,7 @@ body {
   @apply bg-transparent p-0 text-inherit;
 }
 .tiptap hr {
-  @apply my-3 border-slate-200;
+  @apply my-3 border-slate-200 dark:border-slate-700;
 }
 /* Tables */
 .tiptap .tableWrapper {
@@ -114,10 +121,10 @@ body {
 }
 .tiptap th,
 .tiptap td {
-  @apply relative min-w-[3rem] border border-slate-300 px-2 py-1 align-top;
+  @apply relative min-w-[3rem] border border-slate-300 px-2 py-1 align-top dark:border-slate-600;
 }
 .tiptap th {
-  @apply bg-slate-50 text-left font-semibold text-slate-900;
+  @apply bg-slate-50 text-left font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-100;
 }
 .tiptap th > *,
 .tiptap td > * {
@@ -139,25 +146,25 @@ body {
   @apply my-3;
 }
 .tiptap .mmd {
-  @apply overflow-hidden rounded-md border border-slate-200 bg-white;
+  @apply overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900;
 }
 .tiptap .mmd-selected {
   @apply ring-2 ring-indigo-300;
 }
 .tiptap .mmd-bar {
-  @apply flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-1.5 py-1 text-xs;
+  @apply flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-1.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800;
 }
 .tiptap .mmd-grip {
-  @apply cursor-grab select-none px-1 text-slate-400;
+  @apply cursor-grab select-none px-1 text-slate-400 dark:text-slate-500;
 }
 .tiptap .mmd-title {
-  @apply mr-1 font-medium text-slate-500;
+  @apply mr-1 font-medium text-slate-500 dark:text-slate-400;
 }
 .tiptap .mmd-tab {
-  @apply cursor-pointer rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-200;
+  @apply cursor-pointer rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700;
 }
 .tiptap .mmd-tab-on {
-  @apply bg-white font-medium text-indigo-600 shadow-sm;
+  @apply bg-white font-medium text-indigo-600 shadow-sm dark:bg-slate-900 dark:text-indigo-400;
 }
 .tiptap .mmd-source {
   @apply block w-full resize-y border-0 bg-slate-800 p-3 font-mono text-xs leading-relaxed text-slate-100 outline-none;
@@ -172,7 +179,7 @@ body {
   @apply block w-full cursor-zoom-in;
 }
 .tiptap .mmd-empty {
-  @apply text-xs text-slate-400;
+  @apply text-xs text-slate-400 dark:text-slate-500;
 }
 .tiptap .mmd-error {
   @apply rounded bg-rose-50 p-2 text-left text-xs text-rose-700;
@@ -183,7 +190,7 @@ body {
 /* Placeholder (empty editable) */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  @apply pointer-events-none float-left h-0 text-slate-400;
+  @apply pointer-events-none float-left h-0 text-slate-400 dark:text-slate-500;
 }
 
 /* Diagram lightbox (MediaViewer, 'diagram' kind) */

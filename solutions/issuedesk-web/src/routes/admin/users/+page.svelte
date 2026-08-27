@@ -68,10 +68,10 @@
 
 {#if showNew}
   <form onsubmit={create} class="card mb-5 grid gap-3 p-4 sm:grid-cols-5 sm:items-end">
-    <div><label class="mb-1 block text-xs text-slate-500" for="un">Username</label><input id="un" class="input" bind:value={nf.userName} required /></div>
-    <div><label class="mb-1 block text-xs text-slate-500" for="em">Email</label><input id="em" class="input" type="email" bind:value={nf.email} required /></div>
-    <div><label class="mb-1 block text-xs text-slate-500" for="dn">Display name</label><input id="dn" class="input" bind:value={nf.displayName} required /></div>
-    <div><label class="mb-1 block text-xs text-slate-500" for="pw">Password</label><input id="pw" class="input" type="password" bind:value={nf.password} required /></div>
+    <div><label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="un">Username</label><input id="un" class="input" bind:value={nf.userName} required /></div>
+    <div><label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="em">Email</label><input id="em" class="input" type="email" bind:value={nf.email} required /></div>
+    <div><label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="dn">Display name</label><input id="dn" class="input" bind:value={nf.displayName} required /></div>
+    <div><label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="pw">Password</label><input id="pw" class="input" type="password" bind:value={nf.password} required /></div>
     <div class="flex gap-2">
       <select class="input" bind:value={nf.role}>{#each ROLE_LABELS as label, i}<option value={i}>{label}</option>{/each}</select>
       <button class="btn-primary" disabled={busy}>Add</button>
@@ -81,20 +81,20 @@
 
 <div class="card overflow-hidden">
   <table class="w-full text-sm">
-    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
+    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
       <tr><th class="px-3 py-2">User</th><th class="px-3 py-2">Email</th><th class="px-3 py-2">Role</th><th class="px-3 py-2">Active</th><th class="px-3 py-2"></th></tr>
     </thead>
     <tbody>
       {#each users as u (u.id)}
-        <tr class="border-b border-slate-100">
+        <tr class="border-b border-slate-100 dark:border-slate-800">
           <td class="px-3 py-2">
             <div class="flex items-center gap-2">
               <Avatar seed={u.id} name={u.displayName} size={26} />
               <span class="font-medium">{u.displayName}</span>
-              <span class="text-slate-400">@{u.userName}</span>
+              <span class="text-slate-400 dark:text-slate-500">@{u.userName}</span>
             </div>
           </td>
-          <td class="px-3 py-2 text-slate-600">{u.email}</td>
+          <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{u.email}</td>
           <td class="px-3 py-2">
             <select class="input max-w-[8rem]" value={u.role} onchange={(e) => update(u, { role: Number((e.target as HTMLSelectElement).value) })}>
               {#each ROLE_LABELS as label, i}<option value={i}>{label}</option>{/each}
@@ -108,5 +108,5 @@
       {/each}
     </tbody>
   </table>
-  {#if loading}<p class="p-4 text-center text-slate-400">Loading…</p>{/if}
+  {#if loading}<p class="p-4 text-center text-slate-400 dark:text-slate-500">Loading…</p>{/if}
 </div>

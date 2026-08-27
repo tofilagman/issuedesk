@@ -45,36 +45,40 @@
       </span>
       <h1 class="text-xl font-semibold">{ctx.project.name}</h1>
     </div>
-    <nav class="mt-3 flex gap-1 border-b border-slate-200 text-sm">
+    <nav class="mt-3 flex gap-1 border-b border-slate-200 text-sm dark:border-slate-700">
       <a
         href={`/p/${ctx.project.key}`}
         class="border-b-2 px-3 py-2 {tab === 'board'
           ? 'border-indigo-600 font-medium text-indigo-700'
-          : 'border-transparent text-slate-500'}">Board</a
+          : 'border-transparent text-slate-500'}
+  dark:text-slate-400">Board</a
       >
       <a
         href={`/p/${ctx.project.key}/list`}
         class="border-b-2 px-3 py-2 {tab === 'list'
           ? 'border-indigo-600 font-medium text-indigo-700'
-          : 'border-transparent text-slate-500'}">List</a
+          : 'border-transparent text-slate-500'}
+  dark:text-slate-400">List</a
       >
       {#if !auth.isCustomer}
         <a
           href={`/p/${ctx.project.key}/dashboard`}
           class="border-b-2 px-3 py-2 {tab === 'dashboard'
             ? 'border-indigo-600 font-medium text-indigo-700'
-            : 'border-transparent text-slate-500'}">Dashboard</a
+            : 'border-transparent text-slate-500'}
+  dark:text-slate-400">Dashboard</a
         >
         <a
           href={`/p/${ctx.project.key}/settings`}
           class="border-b-2 px-3 py-2 {tab === 'settings'
             ? 'border-indigo-600 font-medium text-indigo-700'
-            : 'border-transparent text-slate-500'}">Settings</a
+            : 'border-transparent text-slate-500'}
+  dark:text-slate-400">Settings</a
         >
       {/if}
     </nav>
   </div>
   {@render children()}
 {:else}
-  <p class="text-slate-400">Loading project…</p>
+  <p class="text-slate-400 dark:text-slate-500">Loading project…</p>
 {/if}

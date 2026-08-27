@@ -224,7 +224,7 @@ export const TYPE_META: Record<number, { label: string; icon: string; color: str
 };
 
 export const PRIORITY_META: Record<number, { label: string; color: string }> = {
-  0: { label: 'Low', color: 'bg-slate-200 text-slate-700' },
+  0: { label: 'Low', color: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200' },
   1: { label: 'Medium', color: 'bg-sky-200 text-sky-800' },
   2: { label: 'High', color: 'bg-amber-200 text-amber-800' },
   3: { label: 'Urgent', color: 'bg-rose-200 text-rose-800' }

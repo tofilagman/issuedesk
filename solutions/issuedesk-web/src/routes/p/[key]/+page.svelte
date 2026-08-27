@@ -239,7 +239,7 @@
 <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
   {#each cols as col (col.status)}
     <div
-      class="flex min-h-[6rem] flex-col rounded-lg bg-slate-200/60 p-2"
+      class="flex min-h-[6rem] flex-col rounded-lg bg-slate-200/60 p-2 dark:bg-slate-800/60"
       role="group"
       aria-label={col.label}
       ondragover={(e) => {
@@ -255,9 +255,9 @@
         void commitDrop(col.status);
       }}
     >
-      <div class="mb-2 flex items-center justify-between px-1 text-sm font-semibold text-slate-600">
+      <div class="mb-2 flex items-center justify-between px-1 text-sm font-semibold text-slate-600 dark:text-slate-300">
         <span>{col.label}</span>
-        <span class="rounded-full bg-white px-2 text-xs text-slate-500">{col.total}</span>
+        <span class="rounded-full bg-white px-2 text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">{col.total}</span>
       </div>
 
       <div
@@ -282,7 +282,7 @@
             ondragover={(e) => canDrag && onCardOver(e, col.status, issue.id)}
             ondragend={clearDrag}
           >
-            <div class="flex items-center gap-2 text-xs text-slate-400">
+            <div class="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
               <span class={TYPE_META[issue.type].color} title={TYPE_META[issue.type].label}>
                 {TYPE_META[issue.type].icon}
               </span>
@@ -304,7 +304,7 @@
                 {PRIORITY_META[issue.priority].label}
               </span>
             </div>
-            <p class="mt-1.5 text-sm font-medium text-slate-800">{issue.title}</p>
+            <p class="mt-1.5 text-sm font-medium text-slate-800 dark:text-slate-100">{issue.title}</p>
             {#if issue.labels.length}
               <div class="mt-2 flex flex-wrap gap-1">
                 {#each issue.labels as l}
@@ -313,7 +313,7 @@
               </div>
             {/if}
             {#if issue.assigneeName}
-              <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+              <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                 <Avatar seed={issue.assigneeId ?? issue.assigneeName} name={issue.assigneeName} size={18} />
                 {issue.assigneeName}
               </div>
@@ -322,11 +322,11 @@
         {/each}
 
         {#if col.loading}
-          <p class="py-2 text-center text-xs text-slate-400">Loading…</p>
+          <p class="py-2 text-center text-xs text-slate-400 dark:text-slate-500">Loading…</p>
         {:else if col.items.length < col.total}
           <button
             type="button"
-            class="rounded-md border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-500 hover:bg-white/60"
+            class="rounded-md border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-500 hover:bg-white/60 dark:border-slate-600 dark:text-slate-400"
             onclick={() => loadColumn(col)}
           >
             Show {col.total - col.items.length} more
@@ -340,7 +340,7 @@
 <!-- New issue slide-over -->
 {#if showNew}
   <div class="fixed inset-0 z-40 bg-black/30" role="presentation" onclick={() => (showNew = false)}></div>
-  <div class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white p-5 shadow-xl">
+  <div class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white p-5 shadow-xl dark:bg-slate-900">
     <h2 class="mb-4 text-lg font-semibold">New issue</h2>
     <form onsubmit={createIssue} class="space-y-3">
       <div>

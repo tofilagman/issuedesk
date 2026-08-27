@@ -104,48 +104,48 @@
 <div class="mb-4 flex items-center">
   <div>
     <h1 class="text-xl font-semibold">Groups</h1>
-    <p class="text-xs text-slate-500">Customers in the same group can see each other's tickets.</p>
+    <p class="text-xs text-slate-500 dark:text-slate-400">Customers in the same group can see each other's tickets.</p>
   </div>
   <button class="btn-primary ml-auto" onclick={() => (showNew = !showNew)}>New group</button>
 </div>
 
 {#if showNew}
   <form onsubmit={create} class="card mb-5 grid gap-3 p-4 sm:grid-cols-3 sm:items-end">
-    <div><label class="mb-1 block text-xs text-slate-500" for="gn">Name</label><input id="gn" class="input" bind:value={nf.name} required /></div>
-    <div><label class="mb-1 block text-xs text-slate-500" for="gd">Description</label><input id="gd" class="input" bind:value={nf.description} /></div>
+    <div><label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="gn">Name</label><input id="gn" class="input" bind:value={nf.name} required /></div>
+    <div><label class="mb-1 block text-xs text-slate-500 dark:text-slate-400" for="gd">Description</label><input id="gd" class="input" bind:value={nf.description} /></div>
     <div><button class="btn-primary" disabled={busy}>Add</button></div>
   </form>
 {/if}
 
 <div class="card overflow-hidden">
   <table class="w-full text-sm">
-    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
+    <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
       <tr><th class="px-3 py-2">Group</th><th class="px-3 py-2">Description</th><th class="px-3 py-2">Members</th><th class="px-3 py-2"></th></tr>
     </thead>
     <tbody>
       {#each groups as g (g.id)}
-        <tr class="cursor-pointer border-b border-slate-100 hover:bg-slate-50" onclick={() => toggle(g)}>
+        <tr class="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900" onclick={() => toggle(g)}>
           <td class="px-3 py-2 font-medium">{g.name}</td>
-          <td class="px-3 py-2 text-slate-600">{g.description ?? ''}</td>
-          <td class="px-3 py-2 text-slate-600">{g.memberCount}</td>
+          <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{g.description ?? ''}</td>
+          <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{g.memberCount}</td>
           <td class="px-3 py-2 text-right">
             <button class="btn-ghost !text-xs text-rose-600" onclick={(e) => { e.stopPropagation(); deleteGroup(g); }}>Delete</button>
           </td>
         </tr>
         {#if openId === g.id}
-          <tr class="border-b border-slate-100 bg-slate-50/60">
+          <tr class="border-b border-slate-100 bg-slate-50/60 dark:border-slate-800">
             <td colspan="4" class="px-3 py-3">
               <ul class="divide-y divide-slate-100 text-sm">
                 {#each members as m (m.userId)}
                   <li class="flex items-center gap-2 py-2">
                     <Avatar seed={m.userId} name={m.displayName} size={26} />
                     <span class="font-medium">{m.displayName}</span>
-                    <span class="text-slate-400">@{m.userName}</span>
+                    <span class="text-slate-400 dark:text-slate-500">@{m.userName}</span>
                     {#if m.role === 2}<span class="rounded bg-sky-100 px-1.5 text-xs text-sky-700">{ROLE_LABELS[2]}</span>{/if}
                     <button class="btn-ghost ml-auto !text-xs text-rose-600" onclick={() => removeMember(m)}>Remove</button>
                   </li>
                 {:else}
-                  <li class="py-2 text-xs text-slate-400">No members yet.</li>
+                  <li class="py-2 text-xs text-slate-400 dark:text-slate-500">No members yet.</li>
                 {/each}
               </ul>
               <form onsubmit={addMember} class="mt-3 flex max-w-md gap-2">
@@ -162,8 +162,8 @@
     </tbody>
   </table>
   {#if loading}
-    <p class="p-4 text-center text-slate-400">Loading…</p>
+    <p class="p-4 text-center text-slate-400 dark:text-slate-500">Loading…</p>
   {:else if groups.length === 0}
-    <p class="p-4 text-center text-slate-400">No groups yet.</p>
+    <p class="p-4 text-center text-slate-400 dark:text-slate-500">No groups yet.</p>
   {/if}
 </div>

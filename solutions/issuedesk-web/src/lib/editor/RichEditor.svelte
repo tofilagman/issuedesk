@@ -262,7 +262,7 @@
 
 <div class="rich-editor" class:rich-editable={editable}>
   {#if editable}
-    <div class="flex flex-wrap items-center gap-0.5 border-b border-slate-200 px-1.5 py-1">
+    <div class="flex flex-wrap items-center gap-0.5 border-b border-slate-200 px-1.5 py-1 dark:border-slate-700">
       <button type="button" class="te-btn" class:te-on={active.bold} title="Bold"
         onclick={() => editor?.chain().focus().toggleBold().run()}><b>B</b></button>
       <button type="button" class="te-btn" class:te-on={active.italic} title="Italic"

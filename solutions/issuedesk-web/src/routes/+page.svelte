@@ -54,15 +54,15 @@
 {#if showCreate}
   <form onsubmit={create} class="card mb-5 grid gap-3 p-4 sm:grid-cols-[120px_1fr_2fr_auto] sm:items-end">
     <div>
-      <label class="mb-1 block text-xs font-medium text-slate-500" for="k">Key</label>
+      <label class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400" for="k">Key</label>
       <input id="k" class="input uppercase" maxlength="10" placeholder="WAT" bind:value={form.key} required />
     </div>
     <div>
-      <label class="mb-1 block text-xs font-medium text-slate-500" for="n">Name</label>
+      <label class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400" for="n">Name</label>
       <input id="n" class="input" placeholder="Water Station" bind:value={form.name} required />
     </div>
     <div>
-      <label class="mb-1 block text-xs font-medium text-slate-500" for="d">Description</label>
+      <label class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400" for="d">Description</label>
       <input id="d" class="input" bind:value={form.description} />
     </div>
     <button class="btn-primary" disabled={busy}>Create</button>
@@ -70,9 +70,9 @@
 {/if}
 
 {#if loading}
-  <p class="text-slate-400">Loading…</p>
+  <p class="text-slate-400 dark:text-slate-500">Loading…</p>
 {:else if projects.length === 0}
-  <div class="card grid place-items-center p-12 text-center text-slate-400">
+  <div class="card grid place-items-center p-12 text-center text-slate-400 dark:text-slate-500">
     No projects yet.{#if auth.isAdmin}<br />Create one to get started.{/if}
   </div>
 {:else}
@@ -84,9 +84,9 @@
           <span class="font-medium">{p.name}</span>
         </div>
         {#if p.description}
-          <p class="mt-2 line-clamp-2 text-sm text-slate-500">{p.description}</p>
+          <p class="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{p.description}</p>
         {/if}
-        <p class="mt-3 text-xs text-slate-400">{p.issueSeq} issues</p>
+        <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">{p.issueSeq} issues</p>
       </a>
     {/each}
   </div>

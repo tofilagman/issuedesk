@@ -83,12 +83,12 @@
 </div>
 
 <div class="grid min-h-[80vh] place-items-center">
-  <form onsubmit={submit} class="w-full max-w-sm space-y-4 rounded-xl border border-white/40 bg-white/95 p-6 shadow-2xl backdrop-blur">
+  <form onsubmit={submit} class="w-full max-w-sm space-y-4 rounded-xl border border-white/40 bg-white/95 p-6 shadow-2xl backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
     <div class="flex items-center gap-2 text-lg font-semibold text-indigo-700">
       <span class="grid h-8 w-8 place-items-center rounded bg-indigo-600 text-white">id</span>
       issuedesk
     </div>
-    <p class="text-sm text-slate-500">Sign in to your account</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Sign in to your account</p>
     <div>
       <label class="mb-1 block text-sm font-medium" for="u">Username</label>
       <input id="u" class="input" bind:value={userName} autocomplete="username" required />

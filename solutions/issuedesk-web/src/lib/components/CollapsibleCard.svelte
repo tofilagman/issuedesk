@@ -30,14 +30,14 @@
   <div class="flex items-center gap-2 p-4">
     <button
       type="button"
-      class="-m-1 flex flex-1 items-center gap-2 rounded p-1 text-left hover:bg-slate-50"
+      class="-m-1 flex flex-1 items-center gap-2 rounded p-1 text-left hover:bg-slate-50 dark:hover:bg-slate-900"
       onclick={toggle}
       aria-expanded={open}
     >
       <svg
         viewBox="0 0 20 20"
         fill="currentColor"
-        class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-150 {open ? '' : '-rotate-90'}"
+        class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-150 {open ? '' : '-rotate-90'} dark:text-slate-500"
       >
         <path
           fill-rule="evenodd"
@@ -45,9 +45,9 @@
           clip-rule="evenodd"
         />
       </svg>
-      <h3 class="text-sm font-semibold text-slate-600">{title}</h3>
+      <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300">{title}</h3>
       {#if count !== undefined}
-        <span class="rounded-full bg-slate-100 px-2 text-xs font-medium text-slate-500">{count}</span>
+        <span class="rounded-full bg-slate-100 px-2 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">{count}</span>
       {/if}
     </button>
     {#if actions}
@@ -55,7 +55,7 @@
     {/if}
   </div>
   {#if open}
-    <div class="border-t border-slate-100 p-4">
+    <div class="border-t border-slate-100 p-4 dark:border-slate-800">
       {@render children()}
     </div>
   {/if}
